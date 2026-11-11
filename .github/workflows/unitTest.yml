@@ -58,6 +58,9 @@ jobs:
       - name: FE build
         run: make build_fe
 
+      - name: Check architecture
+        run: make check_arch
+
       - name: Run Test Mysql
         run: make test_mysql
 

@@ -1,7 +1,7 @@
 FROM node:lts-alpine as febuild
 WORKDIR /work
 
-COPY fe .
+COPY web/desktop .
 
 RUN yarn && yarn build
 
@@ -10,9 +10,9 @@ FROM golang:alpine as serverbuild
 ARG VERSION
 WORKDIR /work
 COPY . .
-COPY --from=febuild /work/dist /work/server/listen/http_server/dist
+COPY --from=febuild /work/dist /work/server/internal/api/dist
 RUN apk update && apk add git
-RUN cd /work/server && go build -ldflags "-s -w -X 'main.version=${VERSION}' -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail main.go
+RUN cd /work/server && go build -ldflags "-s -w -X 'main.version=${VERSION}' -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail ./cmd/pmail
 RUN cd /work/server/hooks/wechat_push && go build -ldflags "-s -w" -o output/wechat_push wechat_push.go
 RUN cd /work/server/hooks/spam_block && go build -ldflags "-s -w" -o output/spam_block spam_block.go
 

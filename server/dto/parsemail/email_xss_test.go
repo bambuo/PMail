@@ -191,7 +191,7 @@ func TestBuildUser_XSS(t *testing.T) {
 			name:          "Event handler in name - quotes removed in sanitization",
 			input:         `onclick="alert('xss')" <click@example.com>`,
 			expectedEmail: "click@example.com",
-			expectedName:  "onclick= alert(&#39;xss&#39;)", 
+			expectedName:  "onclick= alert(&#39;xss&#39;)",
 			shouldBeNil:   false,
 		},
 		{
@@ -206,14 +206,14 @@ func TestBuildUser_XSS(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			user := buildUser(tc.input)
-			
+
 			if tc.shouldBeNil {
 				if user != nil {
 					t.Errorf("buildUser(%q) should return nil due to heavy sanitization, but got: %+v", tc.input, user)
 				}
 				return
 			}
-			
+
 			if user == nil {
 				t.Fatalf("buildUser returned nil for input: %q", tc.input)
 			}
@@ -437,4 +437,4 @@ func TestXSSInMultipleFields(t *testing.T) {
 	if !strings.Contains(email.Subject, "Important Email") {
 		t.Errorf("Subject should keep safe text, got: %q", email.Subject)
 	}
-} 
+}

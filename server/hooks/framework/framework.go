@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/Jinnrry/pmail/dto/parsemail"
 	"github.com/Jinnrry/pmail/models"
-	"github.com/Jinnrry/pmail/utils/context"
+	"github.com/Jinnrry/pmail/pkg/context"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net"

@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/Jinnrry/pmail/config"
-	"github.com/Jinnrry/pmail/db"
 	"github.com/Jinnrry/pmail/hooks/spam_block/tools"
+	"github.com/Jinnrry/pmail/internal/infra"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/spf13/cast"
-	"os"
 )
 
 func getType(emailId int) int {
 	var ue models.UserEmail
-	_, err := db.Instance.Table(&ue).Where("email_id = ?", emailId).Limit(1).Get(&ue)
+	_, err := infra.Database.Table(&ue).Where("email_id = ?", emailId).Limit(1).Get(&ue)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -36,7 +37,7 @@ func main() {
 	}
 
 	config.Init()
-	err := db.Init("test")
+	err := infra.InitDatabase("test")
 	if err != nil {
 		panic(err)
 	}
@@ -53,9 +54,11 @@ func main() {
 	for {
 		var emails []models.Email
 		if id > 0 {
-			db.Instance.Table(&models.Email{}).Where("id = ?", id).OrderBy("id").Find(&emails)
+			infra.Database.
+				Table(&models.Email{}).Where("id = ?", id).OrderBy("id").Find(&emails)
 		} else {
-			db.Instance.Table(&models.Email{}).Where("id > ?", start).OrderBy("id").Find(&emails)
+			infra.Database.
+				Table(&models.Email{}).Where("id > ?", start).OrderBy("id").Find(&emails)
 		}
 		if len(emails) == 0 {
 			break

@@ -6,7 +6,7 @@ PMail是一个追求极简部署流程、极致资源占用的个人域名邮箱
 
 欢迎各类PR，无论你是修复bug、新增功能、修改翻译。另外，也为这个项目征集一个漂亮可爱的Logo！
 
-<img src="./docs/cn.gif" alt="Editor" width="800px">
+<img src="./docs/功能/媒体/cn.gif" alt="Editor" width="800px">
 
 ## 为什么写这个项目
 
@@ -119,6 +119,7 @@ IMAP端口： 993(SSL)
 
 [垃圾邮件屏蔽](server/hooks/spam_block/README.md)
 
+
 # 其他优秀开源插件
 
 [Telegram推送](https://github.com/ydzydzydz/pmail_telegram_push)
@@ -131,15 +132,29 @@ IMAP端口： 993(SSL)
 
 # 参与开发
 
+## 项目文档
+
+完整文档位于 [`docs/`](./docs/README.md)：
+
+| 文档 | 内容 |
+| --- | --- |
+| [docs/架构全景图.md](./docs/架构全景图.md) | 系统上下文、部署拓扑、运行时链路 |
+| [docs/功能/01-项目架构.md](./docs/功能/01-项目架构.md) | 组件职责、启动顺序、服务与端口 |
+| [docs/功能/02-功能清单.md](./docs/功能/02-功能清单.md) | 全部 HTTP 路由、协议能力、定时任务与插件 |
+| [docs/功能/03-接口说明.md](./docs/功能/03-接口说明.md) | 管理 API 契约 |
+| [docs/功能/07-构建与部署.md](./docs/功能/07-构建与部署.md) | 构建流水线、端口清单、配置字段 |
+| [docs/流程/](./docs/流程/) | 按功能拆分的流程图、时序图与状态机 |
+| [AGENTS.md](./AGENTS.md) | 在本仓库工作的 AI 编码代理规则 |
+
 ## 项目架构
 
 1、前端： vue3+element-plus
 
-前端代码位于 `fe`目录中，运行参考 `fe`目录中的README文件
+前端代码位于 `web/desktop` 目录，运行方式参考该目录下的 README。后续移动端前端放在 `web/mobile`。
 
 2、后端： golang + MySQL/SQLite
 
-后端代码进入 `server`文件夹，运行 `main.go`文件
+后端 Go 模块位于 `server/`，主入口为 `server/cmd/pmail`。先运行 `make build_fe` 生成内嵌资源，然后在仓库根目录运行 `make run`；使用开发配置运行 `make run_dev`。
 
 3、编译项目
 

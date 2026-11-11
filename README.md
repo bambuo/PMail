@@ -16,7 +16,7 @@ own .
 All kinds of PR are welcome, whether you are fixing bugs, adding features, or optimizing translations. Also, call for a
 beautiful and cute Logo for this project!
 
-<img src="./docs/en.gif" alt="Editor" width="800px">
+<img src="./docs/功能/媒体/en.gif" alt="Editor" width="800px">
 
 ## Features
 
@@ -88,10 +88,11 @@ use [https://email-spam-tester.com/](https://email-spam-tester.com/), which is f
   "SSLPrivateKeyPath": "config/ssl/private.key", // ssl certificate path
   "SSLPublicKeyPath": "config/ssl/public.crt", // ssl certificate path
   "dbDSN": "./config/pmail.db", // database connect DSN
-  "dbType": "sqlite", //database type ，`sqlite` or `mysql`
+  "dbType": "sqlite", //database type ，`sqlite` / `mysql` / `postgres`
   "httpsEnabled": 0, // enabled https , 0:enabled 1:enablde 2:disenabled
   "httpPort": 80, // http port . default 80
   "httpsPort": 443, // https port . default 443
+  "domains": ["domain.com"], // all inbound domains (optional, defaults to `domain`)
   "spamFilterLevel": 0,// Spam Filtering Levels: 0: No filtering. 1: Filter when both SPF and DKIM fail (in the absence of valid recipient filtering). 2: Filter when SPF check fails (in the absence of valid recipient filtering).  3: Filter when DKIM check fails (in the absence of valid recipient filtering)
   "isInit": true // If false, it will enter the bootstrap process.
 }
@@ -107,6 +108,8 @@ SMTP Server Address : smtp.[Your Domain]
 
 SMTP Port: 25/465、587(SSL)
 
+> Port 465 is implicit TLS, port 587 is plaintext with STARTTLS.
+
 IMAP Server Address : imap.[Your Domain]
 
 IMAP Port: 993(SSL)
@@ -115,6 +118,7 @@ IMAP Port: 993(SSL)
 [WeChat Push](server/hooks/wechat_push/README.md)
 
 [Spam Block](server/hooks/spam_block/README.md)
+
 
 # Community plugins
 
@@ -128,15 +132,29 @@ Copy plugin binary file to `/plugins`
 
 # For Developer
 
+## Documentation
+
+The full document set lives in [`docs/`](./docs/README.md):
+
+| Document | Content |
+| --- | --- |
+| [docs/架构全景图.md](./docs/架构全景图.md) | System context, deployment topology, runtime flows |
+| [docs/功能/01-项目架构.md](./docs/功能/01-项目架构.md) | Components, startup order, services and ports |
+| [docs/功能/02-功能清单.md](./docs/功能/02-功能清单.md) | Every HTTP route, protocol capability, task and plugin |
+| [docs/功能/03-接口说明.md](./docs/功能/03-接口说明.md) | Management API contracts |
+| [docs/功能/07-构建与部署.md](./docs/功能/07-构建与部署.md) | Build pipeline, ports, configuration fields |
+| [docs/流程/](./docs/流程/) | Per-feature flow charts, sequence diagrams and state machines |
+| [AGENTS.md](./AGENTS.md) | Rules for AI coding agents working in this repo |
+
 ## Project Framework
 
 1、 FE： vue3+element-plus
 
-The code is in `fe` folder.
+The desktop web client is in `web/desktop`. The mobile web client will live in `web/mobile`.
 
 2、Server： golang + MySQL/SQLite
 
-The code is in `server` folder.
+The Go module is in `server/`, with the main entry point at `server/cmd/pmail`. Run `make build_fe` first, then `make run` from the repository root (`make run_dev` for the development config).
 
 3、How to build
 

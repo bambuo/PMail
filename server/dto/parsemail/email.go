@@ -15,7 +15,7 @@ import (
 
 	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/models"
-	"github.com/Jinnrry/pmail/utils/context"
+	"github.com/Jinnrry/pmail/pkg/context"
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
@@ -458,10 +458,10 @@ func (e *Email) ForwardBuildBytes(ctx *context.Context, sender *models.User, for
 	var b bytes.Buffer
 
 	forwardUser := buildUser(forwardAddress)
-	to := []*mail.Address{{forwardUser.Name, forwardUser.EmailAddress}}
+	to := []*mail.Address{{Name: forwardUser.Name, Address: forwardUser.EmailAddress}}
 
 	senderEmailAddress := fmt.Sprintf("%s@%s", sender.Account, config.Instance.Domains[0])
-	senderAddress := []*mail.Address{{sender.Name, senderEmailAddress}}
+	senderAddress := []*mail.Address{{Name: sender.Name, Address: senderEmailAddress}}
 	// Create our mail header
 	var h mail.Header
 	h.SetDate(time.Now())
@@ -469,7 +469,7 @@ func (e *Email) ForwardBuildBytes(ctx *context.Context, sender *models.User, for
 	h.SetAddressList("Sender", senderAddress)
 	h.SetAddressList("To", to)
 	if e.From != nil && e.From.EmailAddress != "" {
-		h.SetAddressList("Reply-To", []*mail.Address{{e.From.Name, e.From.EmailAddress}})
+		h.SetAddressList("Reply-To", []*mail.Address{{Name: e.From.Name, Address: e.From.EmailAddress}})
 		h.Set("X-Original-From", e.From.Build())
 	}
 	h.Set("X-Forwarded-By", senderEmailAddress)
@@ -602,7 +602,7 @@ func (e *Email) BuildPart(ctx *context.Context, loc []int) []byte {
 func (e *Email) BuildBytes(ctx *context.Context, dkim bool) []byte {
 	var b bytes.Buffer
 
-	from := []*mail.Address{{e.From.Name, e.From.EmailAddress}}
+	from := []*mail.Address{{Name: e.From.Name, Address: e.From.EmailAddress}}
 	to := []*mail.Address{}
 	for _, user := range e.To {
 		to = append(to, &mail.Address{

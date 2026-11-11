@@ -1,3 +1,5 @@
+.PHONY: build clean build_fe build_server wechat_push spam_block plugin package test test_mysql test_postgres run run_dev check_arch
+
 build: build_fe build_server spam_block wechat_push package
 
 clean:
@@ -5,15 +7,15 @@ clean:
 
 
 build_fe:
-	cd fe && yarn && yarn build
-	rm -rf server/listen/http_server/dist
-	cd server && cp -rf ../fe/dist listen/http_server
+	cd web/desktop && yarn && yarn build
+	rm -rf server/internal/api/dist
+	cd server && cp -rf ../web/desktop/dist internal/api
 
 build_server:
-	cd server && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail_linux_amd64  main.go
-	cd server && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail_windows_amd64.exe  main.go
-	cd server && CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail_mac_amd64  main.go
-	cd server && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail_mac_arm64  main.go
+	cd server && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail_linux_amd64  ./cmd/pmail
+	cd server && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail_windows_amd64.exe  ./cmd/pmail
+	cd server && CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail_mac_amd64  ./cmd/pmail
+	cd server && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail_mac_arm64  ./cmd/pmail
 
 wechat_push:
 	cd server/hooks/wechat_push && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o output/wechat_push_linux_amd64  wechat_push.go
@@ -26,6 +28,7 @@ spam_block:
 	cd server/hooks/spam_block && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o output/spam_block_windows_amd64.exe  spam_block.go
 	cd server/hooks/spam_block && CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o output/spam_block_mac_amd64  spam_block.go
 	cd server/hooks/spam_block && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o output/spam_block_mac_arm64  spam_block.go
+
 
 
 
@@ -52,3 +55,13 @@ test_mysql:
 
 test_postgres:
 	export setup_port=17888 && cd server && export PMail_ROOT=$(CURDIR)/server/ && go test -args "postgres" -v -p 1 ./...
+
+# Run from the module root so relative plugin and certificate paths stay valid.
+run:
+	cd server && PMail_ROOT="$(CURDIR)/server/" go run ./cmd/pmail
+
+run_dev:
+	cd server && PMail_ROOT="$(CURDIR)/server/" go run ./cmd/pmail dev
+
+check_arch:
+	node scripts/check-architecture.mjs

@@ -7,7 +7,7 @@ import (
 
 	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/models"
-	"github.com/Jinnrry/pmail/utils/context"
+	"github.com/Jinnrry/pmail/pkg/context"
 	"github.com/emersion/go-message/mail"
 )
 

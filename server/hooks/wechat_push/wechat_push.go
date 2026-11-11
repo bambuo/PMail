@@ -16,7 +16,7 @@ import (
 	"github.com/Jinnrry/pmail/dto/parsemail"
 	"github.com/Jinnrry/pmail/hooks/framework"
 	"github.com/Jinnrry/pmail/models"
-	"github.com/Jinnrry/pmail/utils/context"
+	"github.com/Jinnrry/pmail/pkg/context"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
