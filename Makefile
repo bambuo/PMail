@@ -7,7 +7,7 @@ clean:
 
 
 build_fe:
-	cd web/desktop && yarn && yarn build
+	cd web/desktop && bun install --frozen-lockfile && bun run build
 	rm -rf server/internal/api/dist
 	cd server && cp -rf ../web/desktop/dist internal/api
 

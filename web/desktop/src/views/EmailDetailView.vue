@@ -1,19 +1,29 @@
 <template>
+  <!-- eslint-disable vue/no-v-html -- 邮件 HTML 已由后端 parsemail 清洗 -->
   <div class="mail-detail-container">
     <div class="mail-detail-header">
-      <el-button @click="$router.back()" plain class="back-btn">
-        <el-icon><Back /></el-icon>
-      </el-button>
+      <a-button
+        class="back-btn"
+        @click="$router.back()"
+      >
+        <template #icon>
+          <IconArrowLeft />
+        </template>
+      </a-button>
       <div class="action-buttons">
-        <el-button plain @click="handleDelete">
-          <el-icon><Delete /></el-icon>
-        </el-button>
+        <a-button @click="handleDelete">
+          <template #icon>
+            <IconDelete />
+          </template>
+        </a-button>
       </div>
     </div>
 
     <div class="mail-detail-content">
-      <h1 class="mail-subject">{{ detailData.subject }}</h1>
-      
+      <h1 class="mail-subject">
+        {{ detailData.subject }}
+      </h1>
+
       <div class="mail-meta-card">
         <div class="meta-left">
           <div class="avatar-placeholder">
@@ -22,16 +32,30 @@
           <div class="meta-info">
             <div class="sender-line">
               <span class="sender-name">{{ detailData.from_name !== '' ? detailData.from_name : detailData.from_address }}</span>
-              <span class="sender-email" v-if="detailData.from_name !== ''">&lt;{{ detailData.from_address }}&gt;</span>
+              <span
+                v-if="detailData.from_name !== ''"
+                class="sender-email"
+              >&lt;{{ detailData.from_address }}&gt;</span>
             </div>
             <div class="receivers-line">
               <span class="meta-label">{{ lang.to }}:</span>
-              <span v-for="(to, index) in tos" :key="index" class="receiver-chip">
+              <span
+                v-for="(to, index) in tos"
+                :key="index"
+                class="receiver-chip"
+              >
                 {{ to.Name !== '' ? to.Name : to.EmailAddress }}<span v-if="index < tos.length - 1">, </span>
               </span>
-              <span v-if="showCC" class="cc-section">
+              <span
+                v-if="showCC"
+                class="cc-section"
+              >
                 <span class="meta-label">{{ lang.cc }}:</span>
-                <span v-for="(item, index) in ccs" :key="'cc'+index" class="receiver-chip">
+                <span
+                  v-for="(item, index) in ccs"
+                  :key="'cc' + index"
+                  class="receiver-chip"
+                >
                   {{ item.Name !== '' ? item.Name : item.EmailAddress }}<span v-if="index < ccs.length - 1">, </span>
                 </span>
               </span>
@@ -39,27 +63,46 @@
           </div>
         </div>
         <div class="meta-right">
-          <div class="mail-date">{{ formatDetailDate(detailData.send_date) }}</div>
+          <div class="mail-date">
+            {{ formatDetailDate(detailData.send_date) }}
+          </div>
         </div>
       </div>
 
-      <el-divider class="custom-divider"/>
+      <a-divider class="custom-divider" />
 
       <div class="mail-body">
-        <div class="body-text" v-if="detailData.html === ''">
+        <div
+          v-if="detailData.html === ''"
+          class="body-text"
+        >
           {{ detailData.text }}
         </div>
-        <div class="body-html" v-else v-html="detailData.html"></div>
+        <div
+          v-else
+          class="body-html"
+          v-html="detailData.html"
+        />
       </div>
 
-      <div v-if="detailData.attachments && detailData.attachments.length > 0" class="attachments-section">
-        <el-divider class="custom-divider"/>
-        <div class="attachments-title">{{ lang.attachment }} ({{ detailData.attachments.length }})</div>
+      <div
+        v-if="detailData.attachments && detailData.attachments.length > 0"
+        class="attachments-section"
+      >
+        <a-divider class="custom-divider" />
+        <div class="attachments-title">
+          {{ lang.attachment }} ({{ detailData.attachments.length }})
+        </div>
         <div class="attachments-list">
-          <a class="attachment-card" v-for="item in detailData.attachments" :key="item.Index" :href="'/attachments/download/' + detailData.id + '/' + item.Index">
-            <div class="att-icon"><el-icon><Document/></el-icon></div>
+          <a
+            v-for="item in detailData.attachments"
+            :key="item.Index"
+            class="attachment-card"
+            :href="'/attachments/download/' + detailData.id + '/' + item.Index"
+          >
+            <div class="att-icon"><IconFile /></div>
             <div class="att-name">{{ item.Filename }}</div>
-            <div class="att-download"><el-icon><Download/></el-icon></div>
+            <div class="att-download"><IconDownload /></div>
           </a>
         </div>
       </div>
@@ -67,84 +110,118 @@
   </div>
 </template>
 
-<script setup>
-import {ref} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
-import {Document, Back, Delete, Download} from '@element-plus/icons-vue';
-import {ElMessage, ElMessageBox} from 'element-plus';
-import lang from '../i18n/i18n';
-import {http} from "@/utils/axios";
-import useGroupStore from '../stores/group';
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Message, Modal } from '@arco-design/web-vue'
+import { IconArrowLeft, IconDelete, IconDownload, IconFile } from '@arco-design/web-vue/es/icon'
+import lang from '@/i18n/i18n'
+import { http } from '@/utils/axios'
+import useGroupStore from '@/stores/group'
+
+interface MailAddress {
+  Name: string
+  EmailAddress: string
+}
+
+interface Attachment {
+  Index: number
+  Filename: string
+}
+
+interface EmailDetail {
+  id: number
+  subject: string
+  from_name: string
+  from_address: string
+  to: string
+  cc: string
+  send_date: string
+  html: string
+  text: string
+  attachments: Attachment[]
+}
 
 const route = useRoute()
 const router = useRouter()
 const groupStore = useGroupStore()
-const detailData = ref({
-  attachments: []
-})
-
-const tos = ref([])
-const ccs = ref([])
+const detailData = ref<Partial<EmailDetail>>({ attachments: [] })
+const tos = ref<MailAddress[]>([])
+const ccs = ref<MailAddress[]>([])
 const showCC = ref(false)
 
-http.post("/api/email/detail", {id: parseInt(route.params.id)}).then(res => {
-  detailData.value = res.data || {}
-  detailData.value.attachments = res.data.attachments || [];
-  
-  if (res.data.to && res.data.to !== "") {
-    try { tos.value = JSON.parse(res.data.to) } catch(e){}
+const emailId = Number(route.params.id)
+
+http.post<EmailDetail>('/api/email/detail', { id: emailId }).then((res) => {
+  detailData.value = res.data ?? { attachments: [] }
+  detailData.value.attachments = res.data?.attachments ?? []
+  if (res.data?.to && res.data.to !== '') {
+    try {
+      tos.value = JSON.parse(res.data.to) as MailAddress[]
+    } catch {
+      tos.value = []
+    }
   }
-  if (res.data.cc && res.data.cc !== "") {
-    try { ccs.value = JSON.parse(res.data.cc) } catch(e){}
+  if (res.data?.cc && res.data.cc !== '') {
+    try {
+      ccs.value = JSON.parse(res.data.cc) as MailAddress[]
+    } catch {
+      ccs.value = []
+    }
   }
-  showCC.value = ccs.value && ccs.value.length > 0
+  showCC.value = ccs.value.length > 0
 })
 
-const getInitial = (name) => {
-  if (!name) return '?';
-  return name.charAt(0).toUpperCase();
+const getInitial = (name?: string) => {
+  if (!name) return '?'
+  return name.charAt(0).toUpperCase()
 }
 
-const formatDetailDate = (dateStr) => {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
+const formatDetailDate = (dateStr?: string) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
   return d.toLocaleString([], {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute:'2-digit'
-  });
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 const handleDelete = () => {
-  const id = detailData.value.id || parseInt(route.params.id);
-  if (!id) return;
+  const id = detailData.value.id || emailId
+  if (!id) return
 
-  let tag = groupStore.tag;
+  let tag = groupStore.tag
   if (!tag) {
-    tag = '{"type":0,"status":-1}';
+    tag = '{"type":0,"status":-1}'
   }
 
-  let forcedDel = false;
+  let forcedDel = false
   try {
-    const groupTag = JSON.parse(tag);
-    forcedDel = groupTag.status === 3;
-  } catch (e) {
-    forcedDel = false;
+    const groupTag = JSON.parse(tag) as { status?: number }
+    forcedDel = groupTag.status === 3
+  } catch {
+    forcedDel = false
   }
 
-  ElMessageBox.confirm(lang.del_email_confirm, 'Warning', {
-    confirmButtonText: 'OK',
-    cancelButtonText: 'Cancel',
-    type: 'warning',
-  }).then(() => {
-    http.post("/api/email/del", {ids: [id], forcedDel}).then(res => {
-      if (res.errorNo === 0) {
-        ElMessage.success('Deleted successfully');
-        router.push({name: 'list'});
-      } else {
-        ElMessage.error(res.errorMsg);
-      }
-    });
-  }).catch(() => {});
+  Modal.confirm({
+    title: 'Warning',
+    content: lang.del_email_confirm,
+    okText: 'OK',
+    cancelText: 'Cancel',
+    onOk: () => {
+      http.post('/api/email/del', { ids: [id], forcedDel }).then((res) => {
+        if (res.errorNo === 0) {
+          Message.success('Deleted successfully')
+          router.push({ name: 'list' })
+        } else {
+          Message.error(res.errorMsg)
+        }
+      })
+    }
+  })
 }
 </script>
 
@@ -169,27 +246,6 @@ const handleDelete = () => {
   padding: 16px 24px;
   border-bottom: 1px solid var(--pm-border-color);
   background: var(--pm-surface-glass-soft);
-}
-
-.back-btn {
-  border-radius: 12px;
-  font-size: 16px;
-  padding: 8px 10px;
-  transition: transform 0.2s var(--pm-ease-out);
-}
-
-.back-btn:hover {
-  transform: translateY(-1px);
-}
-
-.action-buttons .el-button {
-  border-radius: 12px;
-  font-size: 16px;
-  transition: transform 0.2s var(--pm-ease-out);
-}
-
-.action-buttons .el-button:hover {
-  transform: translateY(-1px);
 }
 
 .mail-detail-content {
@@ -317,7 +373,10 @@ const handleDelete = () => {
   border: 1px solid var(--pm-border-color);
   border-radius: 14px;
   background-color: var(--pm-surface-muted);
-  transition: transform 0.2s var(--pm-ease-out), box-shadow 0.2s var(--pm-ease-out), border-color 0.2s;
+  transition:
+    transform 0.2s var(--pm-ease-out),
+    box-shadow 0.2s var(--pm-ease-out),
+    border-color 0.2s;
   min-width: 200px;
   max-width: 300px;
 }
@@ -365,7 +424,7 @@ const handleDelete = () => {
     gap: 12px;
   }
   .meta-right {
-    padding-left: 64px; /* align with text */
+    padding-left: 64px;
   }
   .avatar-placeholder {
     width: 40px;

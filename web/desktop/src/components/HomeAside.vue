@@ -1,97 +1,118 @@
 <template>
   <div class="sidebar-main">
     <div class="brand">
-      <router-link to="/" class="brand-link">
-        <span class="brand-dot"></span>
+      <router-link
+        to="/"
+        class="brand-link"
+      >
+        <span class="brand-dot" />
         <span class="brand-text">PMail</span>
       </router-link>
     </div>
     <div class="search-box">
-      <el-input
+      <a-input
         v-model="searchQuery"
         :placeholder="lang.search"
-        prefix-icon="Search"
-        clearable
+        allow-clear
         class="custom-search"
-      />
-    </div>
-    
-    <div class="menu-container">
-      <el-menu
-        :default-active="activeGroup"
-        class="sidebar-menu"
-        @select="handleMenuSelect"
       >
-        <el-menu-item v-for="item in data" :key="item.tag" :index="item.tag">
-          <span class="menu-label">{{ item.label }}</span>
-        </el-menu-item>
-      </el-menu>
+        <template #prefix>
+          <IconSearch />
+        </template>
+      </a-input>
     </div>
-    <div class="sidebar-footer" v-if="isLogin">
-      <div class="settings-btn" @click="openSettings">
-        <el-icon><Setting /></el-icon>
+
+    <div class="menu-container">
+      <a-menu
+        :selected-keys="[activeGroup]"
+        class="sidebar-menu"
+        @menu-item-click="handleMenuSelect"
+      >
+        <a-menu-item
+          v-for="item in data"
+          :key="item.tag"
+        >
+          <span class="menu-label">{{ item.label }}</span>
+        </a-menu-item>
+      </a-menu>
+    </div>
+    <div
+      v-if="isLogin"
+      class="sidebar-footer"
+    >
+      <div
+        class="settings-btn"
+        @click="openSettings"
+      >
+        <IconSettings />
         <span class="settings-label">{{ lang.settings }}</span>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { useRouter } from "vue-router";
-import { ref, watch, computed } from "vue";
-import useGroupStore from "../stores/group";
-import lang from "../i18n/i18n";
-import { http } from "@/utils/axios";
-import { Setting } from "@element-plus/icons-vue";
-import { useGlobalStatusStore } from "../stores/useGlobalStatusStore";
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { IconSearch, IconSettings } from '@arco-design/web-vue/es/icon'
+import useGroupStore from '@/stores/group'
+import lang from '@/i18n/i18n'
+import { http } from '@/utils/axios'
+import { useGlobalStatusStore } from '@/stores/useGlobalStatusStore'
 
-const groupStore = useGroupStore();
-const globalStatus = useGlobalStatusStore();
-const isLogin = computed(() => globalStatus.isLogin);
-const router = useRouter();
-const data = ref([]);
-const searchQuery = ref("");
-const activeGroup = ref(groupStore.tag);
+interface GroupNode {
+  tag: string
+  label: string
+  children?: GroupNode[]
+}
 
-// Keep active menu synced with store
-watch(() => groupStore.tag, (newVal) => {
-  activeGroup.value = newVal;
-});
+const groupStore = useGroupStore()
+const globalStatus = useGlobalStatusStore()
+const isLogin = computed(() => globalStatus.isLogin)
+const router = useRouter()
+const data = ref<GroupNode[]>([])
+const searchQuery = ref('')
+const activeGroup = ref(groupStore.tag)
 
-http.get("/api/group").then((res) => {
+watch(
+  () => groupStore.tag,
+  (newVal) => {
+    activeGroup.value = newVal
+  }
+)
+
+http.get<GroupNode[]>('/api/group').then((res) => {
   if (res.data) {
-    // Attempting to flatten the tree for a simpler premium menu or keep it, el-tree is less beautiful.
-    // For now we assume res.data is an array of items. If it's a tree, we flatten it.
-    let list = [];
-    const traverse = (items) => {
-      items.forEach(node => {
-        list.push(node);
-        if(node.children) traverse(node.children);
-      });
+    const list: GroupNode[] = []
+    const traverse = (items: GroupNode[]) => {
+      items.forEach((node) => {
+        list.push(node)
+        if (node.children) traverse(node.children)
+      })
     }
-    traverse(res.data);
-    data.value = list;
+    traverse(res.data)
+    data.value = list
   }
-});
+})
 
-const handleMenuSelect = function (index) {
-  const selected = data.value.find(d => d.tag === index);
+const handleMenuSelect = (index: string) => {
+  const selected = data.value.find((item) => item.tag === index)
   if (selected) {
-    groupStore.name = selected.label;
-    groupStore.tag = selected.tag;
-    router.push({ name: "list" });
+    groupStore.name = selected.label
+    groupStore.tag = selected.tag
+    router.push({ name: 'list' })
   }
-};
+}
 
-const openSettings = function () {
+const openSettings = () => {
   if (Object.keys(globalStatus.userInfos).length === 0) {
     globalStatus.init(() => {
-      globalStatus.settingsDrawerVisible = true;
-    });
+      globalStatus.settingsDrawerVisible = true
+    })
   } else {
-    globalStatus.settingsDrawerVisible = true;
+    globalStatus.settingsDrawerVisible = true
   }
-};
+}
 </script>
 
 <style scoped>
@@ -133,21 +154,6 @@ const openSettings = function () {
   padding: 12px 18px 16px;
 }
 
-.custom-search :deep(.el-input__wrapper) {
-  border-radius: 999px;
-  background-color: var(--pm-surface-solid);
-}
-
-.custom-search :deep(.el-input__wrapper:hover) {
-  background-color: var(--pm-bg-secondary);
-  box-shadow: 0 0 0 1px var(--pm-border-color) inset;
-}
-
-.custom-search :deep(.el-input__wrapper.is-focus) {
-  background-color: var(--pm-bg-secondary);
-  box-shadow: 0 0 0 1px var(--pm-primary-color) inset;
-}
-
 .menu-container {
   flex-grow: 1;
   overflow-y: auto;
@@ -155,30 +161,15 @@ const openSettings = function () {
 }
 
 .sidebar-menu {
-  border-right: none;
   background: transparent;
 }
 
-.sidebar-menu :deep(.el-menu-item) {
+.sidebar-menu :deep(.arco-menu-item) {
   height: 42px;
   line-height: 42px;
   border-radius: 999px;
   margin-bottom: 4px;
-  color: var(--pm-text-secondary);
   font-weight: 500;
-  transition: transform 0.2s var(--pm-ease-out), background-color 0.2s;
-}
-
-.sidebar-menu :deep(.el-menu-item:hover) {
-  background-color: var(--pm-bg-hover);
-  color: var(--pm-text-primary);
-  transform: translateX(2px);
-}
-
-.sidebar-menu :deep(.el-menu-item.is-active) {
-  background: linear-gradient(90deg, #eaf3ff 0%, #f2f7ff 100%);
-  color: var(--pm-primary-color);
-  font-weight: 600;
 }
 
 .menu-label {
@@ -186,9 +177,9 @@ const openSettings = function () {
 }
 
 .sidebar-footer {
+  margin-top: auto;
   padding: 14px 16px 18px;
   border-top: 1px solid var(--pm-border-color);
-  margin-top: auto;
 }
 
 .settings-btn {
@@ -206,7 +197,7 @@ const openSettings = function () {
   transition: all 0.2s ease;
 }
 
-.settings-btn .el-icon {
+.settings-btn :deep(.arco-icon) {
   font-size: 18px;
 }
 

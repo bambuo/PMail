@@ -1,9 +1,9 @@
-FROM node:lts-alpine as febuild
+FROM node:24-alpine as febuild
 WORKDIR /work
 
 COPY web/desktop .
 
-RUN yarn && yarn build
+RUN npm install -g bun@1.4.4 && bun install --frozen-lockfile && bun run build
 
 
 FROM golang:1.27.3-alpine as serverbuild

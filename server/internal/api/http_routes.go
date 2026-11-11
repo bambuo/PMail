@@ -26,7 +26,7 @@ func httpServerRouter(mux *http.ServeMux) {
 	if err != nil {
 		panic(err)
 	}
-	mux.Handle("/", http.FileServer(http.FS(fe)))
+	mux.Handle("/", httpServerSPAHandler(fe))
 	// 挑战请求类似这样 /.well-known/acme-challenge/QPyMAyaWw9s5JvV1oruyqWHG7OqkHMJEHPoUz2046KM
 	mux.HandleFunc("/.well-known/", HTTPAcmeChallenge)
 	mux.HandleFunc("/api/ping", HTTPPing)
@@ -61,6 +61,7 @@ func httpServerRouter(mux *http.ServeMux) {
 	mux.HandleFunc("/api/plugin/manage/disable", httpServerContextIterceptor(HTTPPluginManageDisable))
 	mux.HandleFunc("/api/plugin/manage/reject", httpServerContextIterceptor(HTTPPluginManageReject))
 	mux.HandleFunc("/api/plugin/manage/reload", httpServerContextIterceptor(HTTPPluginManageReload))
+	mux.HandleFunc("/api/plugin/manage/upload", httpServerContextIterceptor(HTTPPluginManageUpload))
 }
 
 func StartHTTP() {

@@ -48,3 +48,4 @@ var PluginEnable func(ctx *pcontext.Context, id string) error
 var PluginDisable func(ctx *pcontext.Context, id string) error
 var PluginReject func(ctx *pcontext.Context, id string) error
 var PluginReload func(ctx *pcontext.Context, id string) error
+var PluginInstall func([]byte) (plugin.Info, error)

@@ -143,7 +143,7 @@ IMAP端口： 993(SSL)
 
 ## 项目架构
 
-1、前端： vue3+element-plus
+1、前端： Vue 3 + TypeScript + Arco Design Vue + Vite
 
 前端代码位于 `web/desktop` 目录，运行方式参考该目录下的 README。后续移动端前端放在 `web/mobile`。
 

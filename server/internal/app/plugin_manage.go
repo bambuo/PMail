@@ -46,3 +46,10 @@ func ReloadPlugin(ctx *pcontext.Context, id string) error {
 	}
 	return PluginReload(ctx, id)
 }
+
+func InstallPlugin(data []byte) (plugin.Info, error) {
+	if PluginInstall == nil {
+		return plugin.Info{}, plugin.ErrDisabled
+	}
+	return PluginInstall(data)
+}

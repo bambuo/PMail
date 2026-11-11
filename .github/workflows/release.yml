@@ -26,13 +26,17 @@ jobs:
           echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
           echo "${GITHUB_REF}"
       - name: Checkout
-        uses: actions/checkout@v4.0.0
+        uses: actions/checkout@v7
       - name: Setup Node.js environment
-        uses: actions/setup-node@v3.8.1
-      - name: Install Dependencies
-        run: npm install --global yarn
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
       - name: Setup Go environment
-        uses: actions/setup-go@v4.1.0
+        uses: actions/setup-go@v7
         with:
           go-version: '1.27.3'
       - name: Gen output name
@@ -44,7 +48,7 @@ jobs:
         run: |
           echo "FILENAME=pmail_${{ matrix.goos }}_${{ matrix.goarch }}.exe" >> ${GITHUB_ENV}
       - name: FE Build
-        run: cd web/desktop && yarn && yarn build
+        run: cd web/desktop && bun install --frozen-lockfile && bun run build
       - name: BE Build
         run: |
           cd server && cp -rf ../web/desktop/dist internal/api
@@ -60,7 +64,7 @@ jobs:
           zip -r ${{ env.ZIPNAME }}.zip ${{ env.FILENAME }} plugins
           ls
       - name: Upload files to Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ZIPNAME }}
           path: server/${{ env.ZIPNAME }}.zip

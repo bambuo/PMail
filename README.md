@@ -143,7 +143,7 @@ The full document set lives in [`docs/`](./docs/README.md):
 
 ## Project Framework
 
-1、 FE： vue3+element-plus
+1、 FE： Vue 3 + TypeScript + Arco Design Vue + Vite
 
 The desktop web client is in `web/desktop`. The mobile web client will live in `web/mobile`.
 

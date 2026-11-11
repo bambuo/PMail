@@ -1,0 +1,20 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "types": ["vite/client"],
+    "allowJs": false,
+    "checkJs": false
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.js",
+    "src/**/*.vue",
+    "vite.config.ts",
+    "src/components.d.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

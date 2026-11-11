@@ -1,225 +1,308 @@
 <template>
   <div class="composer-container">
     <div class="composer-header">
-      <h2 class="composer-title">{{ lang.compose }}</h2>
+      <h2 class="composer-title">
+        {{ lang.compose }}
+      </h2>
       <div class="composer-actions">
-        <el-button class="action-btn" @click="upload">
-          <el-icon><Paperclip /></el-icon> {{ lang.add_att }}
-        </el-button>
-        <el-button type="primary" class="send-btn" @click="send(ruleFormRef)">
-          <el-icon><Position /></el-icon> {{ lang.send }}
-        </el-button>
-        <input v-show="false" ref="fileRef" type="file" @change="fileChange" multiple>
+        <a-button
+          class="action-btn"
+          @click="upload"
+        >
+          <template #icon>
+            <IconAttachment />
+          </template>
+          {{ lang.add_att }}
+        </a-button>
+        <a-button
+          type="primary"
+          class="send-btn"
+          @click="send"
+        >
+          <template #icon>
+            <IconSend />
+          </template>
+          {{ lang.send }}
+        </a-button>
+        <input
+          v-show="false"
+          ref="fileRef"
+          type="file"
+          multiple
+          @change="fileChange"
+        >
       </div>
     </div>
 
     <div class="composer-body">
-      <el-form :rules="rules" ref="ruleFormRef" :model="ruleForm" class="composer-form">
-        
+      <a-form
+        ref="ruleFormRef"
+        :rules="rules"
+        :model="ruleForm"
+        class="composer-form"
+      >
         <div class="compose-row">
-          <div class="field-label">{{ lang.sender }}</div>
-          <el-form-item prop="sender" class="flex-grow-item m-0">
-            <el-popover trigger="click" :width="400" placement="bottom-start">
-              <template #reference>
-                <div class="sender-selector">
-                  <span class="sender-name">{{ ruleForm.nickName }}</span>
-                  <span class="sender-email">&lt;{{ ruleForm.sender }}@{{ ruleForm.pickDomain }}&gt;</span>
-                  <el-icon class="arrow-down"><ArrowDown /></el-icon>
-                </div>
-              </template>
-              <template #default>
+          <div class="field-label">
+            {{ lang.sender }}
+          </div>
+          <a-form-item
+            field="sender"
+            class="flex-grow-item m-0"
+          >
+            <a-popover
+              trigger="click"
+              :width="400"
+              position="bl"
+            >
+              <div class="sender-selector">
+                <span class="sender-name">{{ ruleForm.nickName }}</span>
+                <span class="sender-email">&lt;{{ ruleForm.sender }}@{{ ruleForm.pickDomain }}&gt;</span>
+                <IconDown class="arrow-down" />
+              </div>
+              <template #content>
                 <div class="sender-edit-card">
                   <div class="edit-row">
                     <span class="edit-label">Prefix</span>
-                    <el-input 
-                      :disabled="!(globalStatus.userInfos.is_admin)"
-                      v-model="ruleForm.sender" 
+                    <a-input
+                      v-model="ruleForm.sender"
+                      :disabled="!globalStatus.userInfos.is_admin"
                       :placeholder="lang.sender_desc"
                     />
                   </div>
                   <div class="edit-row">
                     <span class="edit-label">Domain</span>
-                    <el-select v-model="ruleForm.pickDomain" class="w-full">
-                      <el-option :value="item" v-for="item in ruleForm.domains" :key="item">{{ item }}</el-option>
-                    </el-select>
+                    <a-select
+                      v-model="ruleForm.pickDomain"
+                      class="w-full"
+                    >
+                      <a-option
+                        v-for="item in ruleForm.domains"
+                        :key="item"
+                        :value="item"
+                      >
+                        {{ item }}
+                      </a-option>
+                    </a-select>
                   </div>
                   <div class="edit-row">
                     <span class="edit-label">{{ lang.nick_name }}</span>
-                    <el-input v-model="ruleForm.nickName"/>
+                    <a-input v-model="ruleForm.nickName" />
                   </div>
                 </div>
               </template>
-            </el-popover>
-          </el-form-item>
+            </a-popover>
+          </a-form-item>
         </div>
 
         <div class="compose-row">
-          <div class="field-label">{{ lang.to }}</div>
-          <el-form-item prop="receivers" class="flex-grow-item m-0 border-less-select">
-            <el-select 
-              v-model="ruleForm.receivers" 
-              multiple filterable allow-create :reserve-keyword="false" 
+          <div class="field-label">
+            {{ lang.to }}
+          </div>
+          <a-form-item
+            field="receivers"
+            class="flex-grow-item m-0 border-less-select"
+          >
+            <a-select
+              v-model="ruleForm.receivers"
+              multiple
+              allow-search
+              allow-create
               placeholder="Recipients..."
-            ></el-select>
-          </el-form-item>
+            />
+          </a-form-item>
         </div>
 
-        <div class="compose-row" v-if="ruleForm.cc.length > 0 || showCcBcc">
-          <div class="field-label">{{ lang.cc }}</div>
-          <el-form-item prop="cc" class="flex-grow-item m-0 border-less-select">
-            <el-select 
-              v-model="ruleForm.cc" 
-              multiple filterable allow-create :reserve-keyword="false" 
+        <div
+          v-if="ruleForm.cc.length > 0 || showCcBcc"
+          class="compose-row"
+        >
+          <div class="field-label">
+            {{ lang.cc }}
+          </div>
+          <a-form-item
+            field="cc"
+            class="flex-grow-item m-0 border-less-select"
+          >
+            <a-select
+              v-model="ruleForm.cc"
+              multiple
+              allow-search
+              allow-create
               placeholder="Cc..."
-            ></el-select>
-          </el-form-item>
+            />
+          </a-form-item>
         </div>
 
-        <div class="compose-row" v-if="ruleForm.bcc.length > 0 || showCcBcc">
-          <div class="field-label">{{ lang.bcc }}</div>
-          <el-form-item prop="bcc" class="flex-grow-item m-0 border-less-select">
-            <el-select 
-              v-model="ruleForm.bcc" 
-              multiple filterable allow-create :reserve-keyword="false" 
+        <div
+          v-if="ruleForm.bcc.length > 0 || showCcBcc"
+          class="compose-row"
+        >
+          <div class="field-label">
+            {{ lang.bcc }}
+          </div>
+          <a-form-item
+            field="bcc"
+            class="flex-grow-item m-0 border-less-select"
+          >
+            <a-select
+              v-model="ruleForm.bcc"
+              multiple
+              allow-search
+              allow-create
               placeholder="Bcc..."
-            ></el-select>
-          </el-form-item>
+            />
+          </a-form-item>
         </div>
 
         <div class="compose-row subject-row">
-          <el-form-item prop="subject" class="w-full m-0 border-less-input">
-            <el-input v-model="ruleForm.subject" placeholder="Subject"></el-input>
-            <div class="cc-bcc-toggle" @click="showCcBcc = !showCcBcc" v-if="!showCcBcc">Cc/Bcc</div>
-          </el-form-item>
+          <a-form-item
+            field="subject"
+            class="w-full m-0 border-less-input"
+          >
+            <a-input
+              v-model="ruleForm.subject"
+              placeholder="Subject"
+            />
+            <div
+              v-if="!showCcBcc"
+              class="cc-bcc-toggle"
+              @click="showCcBcc = !showCcBcc"
+            >
+              Cc/Bcc
+            </div>
+          </a-form-item>
         </div>
 
         <div class="editor-wrapper">
-          <Toolbar class="editor-toolbar" :editor="editorRef" :defaultConfig="toolbarConfig" :mode="mode"/>
-          <Editor class="editor-content" v-model="valueHtml" :defaultConfig="editorConfig" :mode="mode" @onCreated="handleCreated"/>
+          <Toolbar
+            class="editor-toolbar"
+            :editor="editorRef"
+            :default-config="toolbarConfig"
+            :mode="mode"
+          />
+          <Editor
+            v-model="valueHtml"
+            class="editor-content"
+            :default-config="editorConfig"
+            :mode="mode"
+            @on-created="handleCreated"
+          />
         </div>
 
-        <div class="attachments-preview" v-if="fileList.length > 0">
-          <div class="att-chip" v-for="(item, index) in fileList" :key="index">
-            <el-icon class="att-icon"><Document /></el-icon>
+        <div
+          v-if="fileList.length > 0"
+          class="attachments-preview"
+        >
+          <div
+            v-for="(item, index) in fileList"
+            :key="index"
+            class="att-chip"
+          >
+            <IconFile class="att-icon" />
             <span class="att-name">{{ item.name }}</span>
-            <el-icon class="att-remove" @click="delFile(index)"><Close/></el-icon>
+            <IconClose
+              class="att-remove"
+              @click="delFile(index)"
+            />
           </div>
         </div>
-      </el-form>
+      </a-form>
     </div>
   </div>
 </template>
 
-<script setup>
-import '@wangeditor/editor/dist/css/style.css'
-import {ElMessage} from 'element-plus'
-import {onBeforeUnmount, reactive, ref, shallowRef} from 'vue'
-import {Close, Paperclip, Position, ArrowDown, Document} from '@element-plus/icons-vue';
-import lang from '../i18n/i18n';
-import {Editor, Toolbar} from '@wangeditor/editor-for-vue'
-import {i18nChangeLanguage} from '@wangeditor/editor'
-import {useRouter} from 'vue-router';
-import {http} from "@/utils/axios";
-import useGroupStore from '../stores/group'
-import {useGlobalStatusStore} from "@/stores/useGlobalStatusStore";
+<script setup lang="ts">
+import '@wangeditor-next/editor/dist/css/style.css'
+import { onBeforeUnmount, reactive, ref, shallowRef } from 'vue'
+import { Message, type FormInstance } from '@arco-design/web-vue'
+import { IconAttachment, IconClose, IconDown, IconFile, IconSend } from '@arco-design/web-vue/es/icon'
+import lang from '@/i18n/i18n'
+import { Editor, Toolbar } from '@wangeditor-next/editor-for-vue'
+import { i18nChangeLanguage, type IDomEditor } from '@wangeditor-next/editor'
+import { useRouter } from 'vue-router'
+import { http } from '@/utils/axios'
+import useGroupStore from '@/stores/group'
+import { useGlobalStatusStore } from '@/stores/useGlobalStatusStore'
 
-const router = useRouter();
+interface MailAddress {
+  name: string
+  email: string
+}
+
+interface AttachmentFile {
+  name: string
+  data: string | ArrayBuffer | null
+}
+
+const router = useRouter()
 const groupStore = useGroupStore()
-const globalStatus = useGlobalStatusStore();
-const showCcBcc = ref(false);
+const globalStatus = useGlobalStatusStore()
+const showCcBcc = ref(false)
 
-if (lang.lang === "zhCn") {
+if (lang.lang === 'zhCn') {
   i18nChangeLanguage('zh-CN')
 } else {
   i18nChangeLanguage('en')
 }
 
-// 内容 HTML
 const valueHtml = ref('<p><br></p>')
-
 const toolbarConfig = {}
 const editorConfig = {
-  MENU_CONF: {},
+  MENU_CONF: {
+    uploadImage: {
+      base64LimitSize: 100 * 1024 * 1024 * 1024
+    }
+  },
   placeholder: 'Write your message...'
 }
-
-editorConfig.MENU_CONF['uploadImage'] = {
-  base64LimitSize: 100 * 1024 * 1024 * 1024,
-}
-const mode = ref()
-const fileRef = ref();
-const ruleFormRef = ref()
+const mode = ref<'default' | 'simple'>('default')
+const fileRef = ref<HTMLInputElement>()
+const ruleFormRef = ref<FormInstance>()
 const ruleForm = reactive({
   nickName: '',
   sender: '',
-  receivers: [],
-  cc: [],
-  bcc: [],
+  receivers: [] as string[],
+  cc: [] as string[],
+  bcc: [] as string[],
   subject: '',
-  domains: [],
-  pickDomain: ""
+  domains: [] as string[],
+  pickDomain: ''
 })
-const fileList = reactive([]);
+const fileList = reactive<AttachmentFile[]>([])
 
-const init = function () {
-    if ( Object.keys(globalStatus.userInfos)==0 || globalStatus.userInfos === null || globalStatus.userInfos == undefined ){
-      globalStatus.init(()=>{
-        ruleForm.sender = globalStatus.userInfos.account
-        ruleForm.domains = globalStatus.userInfos.domains
-        ruleForm.pickDomain = globalStatus.userInfos.domains[0]
-        ruleForm.nickName = globalStatus.userInfos.name
-      })
-    }else{
-      ruleForm.sender = globalStatus.userInfos.account
-      ruleForm.domains = globalStatus.userInfos.domains
-      ruleForm.pickDomain = globalStatus.userInfos.domains[0]
-      ruleForm.nickName = globalStatus.userInfos.name
-    }
+const init = () => {
+  if (!globalStatus.userInfos.account) {
+    globalStatus.init(() => {
+      ruleForm.sender = globalStatus.userInfos.account ?? ''
+      ruleForm.domains = globalStatus.userInfos.domains ?? []
+      ruleForm.pickDomain = ruleForm.domains[0] ?? ''
+      ruleForm.nickName = globalStatus.userInfos.name ?? ''
+    })
+  } else {
+    ruleForm.sender = globalStatus.userInfos.account ?? ''
+    ruleForm.domains = globalStatus.userInfos.domains ?? []
+    ruleForm.pickDomain = ruleForm.domains[0] ?? ''
+    ruleForm.nickName = globalStatus.userInfos.name ?? ''
+  }
 }
 init()
 
-const validateSender = function (rule, value, callback) {
-  if (typeof ruleForm.sender === "undefined" || ruleForm.sender === null || ruleForm.sender.trim() === "") {
-    callback(new Error(lang.err_sender_must))
-  } else if (ruleForm.sender.includes("@")) {
-    callback(new Error(lang.only_prefix))
+const validateSender = (_value: unknown, callback: (error?: string) => void) => {
+  if (ruleForm.sender.trim() === '') {
+    callback(lang.err_sender_must)
+  } else if (ruleForm.sender.includes('@')) {
+    callback(lang.only_prefix)
   } else {
     callback()
   }
 }
 
-const checkEmail = function (str) {
-  const re = /.+@.+\..+/;
-  return re.test(str);
-}
+const checkEmail = (str: string) => /.+@.+\..+/.test(str)
 
-const validateReceivers = function (rule, value, callback) {
-  for (let index = 0; index < ruleForm.receivers.length; index++) {
-    let element = ruleForm.receivers[index];
-    if (!checkEmail(element)) {
-      callback(new Error(lang.err_email_format))
-      return
-    }
-  }
-  callback()
-}
-
-const validateCc = function (rule, value, callback) {
-  for (let index = 0; index < ruleForm.cc.length; index++) {
-    let element = ruleForm.cc[index];
-    if (!checkEmail(element)) {
-      callback(new Error(lang.err_email_format))
-      return
-    }
-  }
-  callback()
-}
-
-const validateBcc = function (rule, value, callback) {
-  for (let index = 0; index < ruleForm.bcc.length; index++) {
-    let element = ruleForm.bcc[index];
-    if (!checkEmail(element)) {
-      callback(new Error(lang.err_email_format))
+const validateAddresses = (list: string[], callback: (error?: string) => void) => {
+  for (const item of list) {
+    if (!checkEmail(item)) {
+      callback(lang.err_email_format)
       return
     }
   }
@@ -227,84 +310,79 @@ const validateBcc = function (rule, value, callback) {
 }
 
 const rules = reactive({
-  sender: [{validator: validateSender, trigger: 'change'}],
-  receivers: [{validator: validateReceivers, trigger: 'change'}],
-  cc: [{validator: validateCc, trigger: 'change'}],
-  bcc: [{validator: validateBcc, trigger: 'change'}],
-  subject: [{required: true, message: lang.err_title_must, trigger: 'change'}],
+  sender: [{ validator: validateSender }],
+  receivers: [{ validator: (_v: unknown, cb: (error?: string) => void) => validateAddresses(ruleForm.receivers, cb) }],
+  cc: [{ validator: (_v: unknown, cb: (error?: string) => void) => validateAddresses(ruleForm.cc, cb) }],
+  bcc: [{ validator: (_v: unknown, cb: (error?: string) => void) => validateAddresses(ruleForm.bcc, cb) }],
+  subject: [{ required: true, message: lang.err_title_must }]
 })
 
-const editorRef = shallowRef()
+const editorRef = shallowRef<IDomEditor>()
+
 onBeforeUnmount(() => {
-  const editor = editorRef.value
-  if (editor == null) return
-  editor.destroy()
+  editorRef.value?.destroy()
 })
 
-const handleCreated = (editor) => {
+const handleCreated = (editor: IDomEditor) => {
   editorRef.value = editor
 }
 
-const send = function (formEl) {
-  if (!formEl) return
-  formEl.validate((valid) => {
-    if (valid) {
-      if(ruleForm.receivers.length === 0 && ruleForm.cc.length === 0 && ruleForm.bcc.length === 0) {
-        ElMessage.warning("Please specify at least one recipient");
-        return;
+const send = async () => {
+  if (!ruleFormRef.value) return
+  const errors = await ruleFormRef.value.validate()
+  if (errors) return
+  if (ruleForm.receivers.length === 0 && ruleForm.cc.length === 0 && ruleForm.bcc.length === 0) {
+    Message.warning('Please specify at least one recipient')
+    return
+  }
+
+  const tos: MailAddress[] = ruleForm.receivers.map((email) => ({ name: '', email }))
+  const ccs: MailAddress[] = ruleForm.cc.map((email) => ({ name: '', email }))
+  const bccs: MailAddress[] = ruleForm.bcc.map((email) => ({ name: '', email }))
+  const text = editorRef.value?.getText() ?? ''
+
+  http
+    .post<string>('/api/email/send', {
+      from: { name: ruleForm.nickName, email: `${ruleForm.sender}@${ruleForm.pickDomain}` },
+      to: tos,
+      cc: ccs,
+      bcc: bccs,
+      subject: ruleForm.subject,
+      text,
+      html: valueHtml.value,
+      attrs: fileList
+    })
+    .then((res) => {
+      if (res.errorNo === 0) {
+        Message.success(lang.succ_send)
+        groupStore.name = lang.outbox
+        groupStore.tag = '{"type":1,"status":-1}'
+        router.replace({ name: 'list' })
+      } else {
+        Message.error(String(res.data))
       }
-      let objectTos = ruleForm.receivers.map(e => ({name: "", email: e}));
-      let objectCcs = ruleForm.cc.map(e => ({name: "", email: e}));
-      let objectBccs = ruleForm.bcc.map(e => ({name: "", email: e}));
+    })
+}
 
-      let text = editorRef.value.getText()
+const upload = () => {
+  fileRef.value?.click()
+}
 
-      http.post("/api/email/send", {
-        from: {name: ruleForm.nickName, email: ruleForm.sender + "@" + ruleForm.pickDomain},
-        to: objectTos,
-        cc: objectCcs,
-        bcc: objectBccs,
-        subject: ruleForm.subject,
-        text: text,
-        html: valueHtml.value,
-        attrs: fileList
-      }).then(res => {
-        if (res.errorNo === 0) {
-          ElMessage.success(lang.succ_send)
-          groupStore.name = lang.outbox
-          groupStore.tag = '{"type":1,"status":-1}'
-          router.replace({name: 'list'})
-        } else {
-          ElMessage.error(res.data)
-        }
-      })
-    } else {
-      return false
+const fileChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const files = input.files
+  if (!files?.length) return
+  for (const file of Array.from(files)) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      fileList.push({ name: file.name, data: reader.result })
     }
-  })
-}
-
-const upload = function () {
-  fileRef.value.dispatchEvent(new MouseEvent('click'))
-}
-
-const fileChange = function (e) {
-  let files = e.target.files || e.dataTransfer.files;
-  if (!files.length) return;
-  for (let i = 0; i < files.length; i++) {
-    const reader = new FileReader();
-    reader.onload = function fileReadCompleted() {
-      fileList.push({
-        name: files[i].name,
-        data: this.result
-      })
-    };
-    reader.readAsDataURL(files[i]);
+    reader.readAsDataURL(file)
   }
 }
 
-const delFile = function (index) {
-  fileList.splice(index, 1);
+const delFile = (index: number) => {
+  fileList.splice(index, 1)
 }
 </script>
 
@@ -344,22 +422,6 @@ const delFile = function (index) {
   gap: 12px;
 }
 
-.action-btn {
-  background: var(--pm-surface-glass);
-  border: 1px solid var(--pm-border-color);
-  color: var(--pm-text-secondary);
-}
-
-.action-btn:hover {
-  background: var(--pm-surface-solid);
-  color: var(--pm-text-primary);
-  border-color: var(--pm-border-strong);
-}
-
-.send-btn {
-  box-shadow: 0 8px 16px rgba(0, 113, 227, 0.2);
-}
-
 .composer-body {
   flex-grow: 1;
   display: flex;
@@ -373,6 +435,15 @@ const delFile = function (index) {
   height: 100%;
 }
 
+.composer-form :deep(.arco-form-item-label-col) {
+  display: none;
+}
+
+.composer-form :deep(.arco-form-item-wrapper-col) {
+  flex: 1;
+  max-width: 100%;
+}
+
 .compose-row {
   display: flex;
   align-items: center;
@@ -381,7 +452,9 @@ const delFile = function (index) {
 }
 
 .field-label {
-  width: 70px;
+  width: 96px;
+  min-width: 96px;
+  white-space: nowrap;
   color: var(--pm-text-secondary);
   font-weight: 600;
   font-size: 13px;
@@ -393,8 +466,13 @@ const delFile = function (index) {
   flex-grow: 1;
 }
 
-.m-0 { margin: 0; }
-.w-full { width: 100%; }
+.m-0 {
+  margin: 0;
+}
+
+.w-full {
+  width: 100%;
+}
 
 .sender-selector {
   display: inline-flex;
@@ -446,36 +524,17 @@ const delFile = function (index) {
   color: var(--pm-text-secondary);
 }
 
-/* Borderless inputs to make it look like integrated fields */
-.border-less-select :deep(.el-input__wrapper),
-.border-less-input :deep(.el-input__wrapper) {
-  box-shadow: none !important;
+.border-less-select :deep(.arco-select-view) {
   background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.border-less-input :deep(.arco-input-wrapper) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
   padding-left: 0;
-}
-
-.border-less-select :deep(.el-select .el-input__wrapper) {
-  background: var(--pm-surface-muted) !important;
-  box-shadow: 0 0 0 1px var(--pm-border-color) inset !important;
-  border-radius: 10px;
-  padding: 2px 10px;
-}
-
-.border-less-select :deep(.el-select .el-input__wrapper:hover),
-.border-less-select :deep(.el-select .el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px var(--pm-primary-color) inset !important;
-  background: var(--pm-surface-solid) !important;
-}
-
-.border-less-select :deep(.el-select__tags .el-tag) {
-  background: var(--pm-surface-glass);
-  border-color: var(--pm-border-color);
-  color: var(--pm-text-primary);
-}
-
-.border-less-select :deep(.el-input__inner),
-.border-less-input :deep(.el-input__inner) {
-  font-size: 15px;
 }
 
 .subject-row {
@@ -553,7 +612,9 @@ const delFile = function (index) {
   border-radius: 999px;
   font-size: 13px;
   box-shadow: var(--pm-shadow-sm);
-  transition: transform 0.2s var(--pm-ease-out), box-shadow 0.2s var(--pm-ease-out);
+  transition:
+    transform 0.2s var(--pm-ease-out),
+    box-shadow 0.2s var(--pm-ease-out);
 }
 
 .att-chip:hover {
@@ -581,27 +642,6 @@ const delFile = function (index) {
 
 .att-remove:hover {
   color: #ef4444;
-}
-
-@media (prefers-color-scheme: dark) {
-  .editor-wrapper {
-    background: var(--pm-surface-glass-soft);
-  }
-
-  .editor-content :deep(.w-e-text-container) {
-    border-left-color: transparent !important;
-    border-right-color: transparent !important;
-  }
-
-  .editor-content :deep(.w-e-bar) {
-    background: var(--pm-surface-glass-soft) !important;
-    color: var(--pm-text-primary) !important;
-  }
-
-  .editor-content :deep(.w-e-bar-item button),
-  .editor-content :deep(.w-e-menu-tooltip-v5) {
-    color: var(--pm-text-primary) !important;
-  }
 }
 
 @media (max-width: 768px) {

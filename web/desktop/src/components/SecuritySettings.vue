@@ -2,78 +2,112 @@
   <div class="settings-card">
     <div class="settings-header">
       <h3>{{ lang.modify_pwd }}</h3>
-      <p class="settings-desc">{{ lang.modify_pwd_desc }}</p>
+      <p class="settings-desc">
+        {{ lang.modify_pwd_desc }}
+      </p>
     </div>
-    
-    <div class="settings-body">
-      <el-form :model="ruleForm" :rules="rules" status-icon label-position="top" class="settings-form">
-        <el-form-item :label="lang.modify_pwd" prop="new_pwd">
-          <el-input type="password" v-model="ruleForm.new_pwd" :placeholder="lang.enter_new_pwd" show-password class="premium-input"/>
-        </el-form-item>
 
-        <el-form-item :label="lang.enter_again" prop="new_pwd2">
-          <el-input type="password" v-model="ruleForm.new_pwd2" :placeholder="lang.confirm_new_pwd" show-password class="premium-input"/>
-        </el-form-item>
+    <div class="settings-body">
+      <a-form
+        ref="formRef"
+        :model="ruleForm"
+        :rules="rules"
+        layout="vertical"
+        class="settings-form"
+      >
+        <a-form-item
+          :label="lang.modify_pwd"
+          field="new_pwd"
+        >
+          <a-input-password
+            v-model="ruleForm.new_pwd"
+            :placeholder="lang.enter_new_pwd"
+          />
+        </a-form-item>
+
+        <a-form-item
+          :label="lang.enter_again"
+          field="new_pwd2"
+        >
+          <a-input-password
+            v-model="ruleForm.new_pwd2"
+            :placeholder="lang.confirm_new_pwd"
+          />
+        </a-form-item>
 
         <div class="form-actions">
-          <el-button type="primary" @click="submit" class="submit-btn">
+          <a-button
+            type="primary"
+            class="submit-btn"
+            @click="submit"
+          >
             {{ lang.submit }}
-          </el-button>
+          </a-button>
         </div>
-      </el-form>
+      </a-form>
     </div>
 
-    <el-divider class="settings-divider"/>
+    <a-divider class="settings-divider" />
 
     <div class="settings-header">
-      <h3 class="danger-text">{{ lang.logout }}</h3>
-      <p class="settings-desc">{{ lang.logout_desc }}</p>
+      <h3 class="danger-text">
+        {{ lang.logout }}
+      </h3>
+      <p class="settings-desc">
+        {{ lang.logout_desc }}
+      </p>
     </div>
     <div class="settings-body">
-      <el-button type="danger" plain @click="logout" class="logout-btn">
+      <a-button
+        status="danger"
+        type="outline"
+        class="logout-btn"
+        @click="logout"
+      >
         {{ lang.logout }}
-      </el-button>
+      </a-button>
     </div>
   </div>
 </template>
 
-<script setup>
-import {reactive} from 'vue'
-import {ElNotification} from 'element-plus'
-import lang from '../i18n/i18n';
-import {http} from "@/utils/axios";
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import { Notification, type FormInstance } from '@arco-design/web-vue'
+import lang from '@/i18n/i18n'
+import { http } from '@/utils/axios'
+
+const formRef = ref<FormInstance>()
 
 const ruleForm = reactive({
-  new_pwd: "",
-  new_pwd2: ""
+  new_pwd: '',
+  new_pwd2: ''
 })
 
 const rules = reactive({
-  new_pwd: [{required: true, message: lang.err_required_pwd, trigger: 'blur'},],
-  new_pwd2: [{required: true, message: lang.err_required_pwd, trigger: 'blur'},],
+  new_pwd: [{ required: true, message: lang.err_required_pwd }],
+  new_pwd2: [{ required: true, message: lang.err_required_pwd }]
 })
 
-const logout = function () {
-  http.post("/api/logout", {}).then(() => {
-    location.reload();
+const logout = () => {
+  http.post('/api/logout', {}).then(() => {
+    location.reload()
   })
 }
 
-const submit = function () {
-  if (ruleForm.new_pwd === "") return;
+const submit = async () => {
+  const errors = await formRef.value?.validate()
+  if (errors) return
   if (ruleForm.new_pwd !== ruleForm.new_pwd2) {
-    ElNotification({
+    Notification.error({
       title: 'Error',
-      message: lang.err_pwd_diff,
-      type: 'error',
+      content: lang.err_pwd_diff
     })
     return
   }
-  http.post("/api/settings/modify_password", {password: ruleForm.new_pwd}).then(res => {
-    ElNotification({
+  http.post<string>('/api/settings/modify_password', { password: ruleForm.new_pwd }).then((res) => {
+    Notification[res.errorNo === 0 ? 'success' : 'error']({
       title: res.errorNo === 0 ? lang.succ : lang.fail,
-      message: res.data,
-      type: res.errorNo === 0 ? 'success' : 'error',
+      content: res.data
     })
   })
 }
@@ -109,37 +143,11 @@ const submit = function () {
   width: 100%;
 }
 
-.premium-input :deep(.el-input__wrapper) {
-  box-shadow: none;
-  border-radius: var(--pm-radius-sm);
-  border: 1px solid var(--pm-border-color);
-  background-color: var(--pm-bg-secondary);
-  transition: all 0.2s;
-}
-
-.premium-input :deep(.el-input__wrapper:hover),
-.premium-input :deep(.el-input__wrapper.is-focus) {
-  border-color: var(--pm-primary-color);
-  background-color: var(--pm-bg-primary);
-}
-
 .form-actions {
   margin-top: 24px;
 }
 
-.submit-btn {
-  border-radius: var(--pm-radius-sm);
-  font-weight: 500;
-  padding: 10px 24px;
-}
-
-.logout-btn {
-  border-radius: var(--pm-radius-sm);
-  font-weight: 500;
-}
-
 .settings-divider {
   margin: 32px 0;
-  border-color: var(--pm-border-color);
 }
 </style>

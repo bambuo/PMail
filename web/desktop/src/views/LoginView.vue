@@ -9,77 +9,91 @@
       <div class="login-right">
         <div class="login-form-box">
           <h2>{{ lang.login }}</h2>
-          <p class="subtitle">{{ lang.login_subtitle }}</p>
-          
-          <el-form :model="form" class="auth-form" @keyup.enter="onSubmit" label-position="top">
-            <el-form-item :label="lang.account">
-              <el-input 
-                v-model="form.account" 
+          <p class="subtitle">
+            {{ lang.login_subtitle }}
+          </p>
+
+          <a-form
+            :model="form"
+            layout="vertical"
+            class="auth-form"
+            @keyup.enter="onSubmit"
+          >
+            <a-form-item :label="lang.account">
+              <a-input
+                v-model="form.account"
                 :placeholder="lang.account"
                 size="large"
-                class="premium-input"
               />
-            </el-form-item>
-            <el-form-item :label="lang.password">
-              <el-input 
-                v-model="form.password" 
+            </a-form-item>
+            <a-form-item :label="lang.password">
+              <a-input-password
+                v-model="form.password"
                 :placeholder="lang.password"
-                type="password" 
                 size="large"
-                class="premium-input"
-                show-password
               />
-            </el-form-item>
+            </a-form-item>
             <div class="submit-action">
-              <el-button type="primary" @click="onSubmit" size="large" class="login-btn" :loading="loading">
+              <a-button
+                type="primary"
+                size="large"
+                long
+                class="login-btn"
+                :loading="loading"
+                @click="onSubmit"
+              >
                 {{ lang.login }}
-              </el-button>
+              </a-button>
             </div>
-          </el-form>
+          </a-form>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import {reactive, ref} from 'vue'
-import {ElMessage} from 'element-plus'
-import {router} from "@/router";
-import lang from '../i18n/i18n';
-import {http} from "@/utils/axios";
-import {useGlobalStatusStore} from "@/stores/useGlobalStatusStore";
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import { Message } from '@arco-design/web-vue'
+import { router } from '@/router'
+import lang from '@/i18n/i18n'
+import { http } from '@/utils/axios'
+import { useGlobalStatusStore } from '@/stores/useGlobalStatusStore'
+import type { UserInfo } from '@/types/api'
 
-const globalStatus = useGlobalStatusStore();
-const loading = ref(false);
+const globalStatus = useGlobalStatusStore()
+const loading = ref(false)
 
 const form = reactive({
   account: '',
-  password: '',
+  password: ''
 })
 
 const onSubmit = () => {
   if (!form.account || !form.password) {
-    ElMessage.warning(lang.login_fill_required);
-    return;
+    Message.warning(lang.login_fill_required)
+    return
   }
-  loading.value = true;
-  http.post("/api/login", form).then(res => {
-    loading.value = false;
-    if (res.errorNo !== 0) {
-      ElMessage.error(res.errorMsg)
-    } else {
-      Object.assign(globalStatus.userInfos , res.data) 
-      router.replace({
-        path: '/',
-        query: {
-          redirect: router.currentRoute.fullPath
-        }
-      })
-    }
-  }).catch(() => {
-    loading.value = false;
-  })
+  loading.value = true
+  http
+    .post<Partial<UserInfo>>('/api/login', form)
+    .then((res) => {
+      loading.value = false
+      if (res.errorNo !== 0) {
+        Message.error(res.errorMsg)
+      } else {
+        Object.assign(globalStatus.userInfos, res.data)
+        router.replace({
+          path: '/',
+          query: {
+            redirect: router.currentRoute.value.fullPath
+          }
+        })
+      }
+    })
+    .catch(() => {
+      loading.value = false
+    })
 }
 </script>
 
@@ -88,9 +102,9 @@ const onSubmit = () => {
   width: 100vw;
   height: 100vh;
   background:
-      radial-gradient(circle at 15% 20%, rgba(0, 113, 227, 0.1) 0%, transparent 36%),
-      radial-gradient(circle at 85% 80%, rgba(0, 113, 227, 0.12) 0%, transparent 34%),
-      var(--pm-bg-primary);
+    radial-gradient(circle at 15% 20%, rgba(0, 113, 227, 0.1) 0%, transparent 36%),
+    radial-gradient(circle at 85% 80%, rgba(0, 113, 227, 0.12) 0%, transparent 34%),
+    var(--pm-bg-primary);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -158,44 +172,16 @@ const onSubmit = () => {
   font-size: 14px;
 }
 
-.auth-form :deep(.el-form-item__label) {
-  font-weight: 500;
-  color: var(--pm-text-primary);
-  padding-bottom: 4px;
-}
-
-.premium-input :deep(.el-input__wrapper) {
-  background-color: var(--pm-surface-muted);
-  border-radius: 12px;
-  border: 1px solid transparent;
-  box-shadow: 0 0 0 1px var(--pm-border-color) inset !important;
-  transition: all 0.2s;
-}
-
-.premium-input :deep(.el-input__wrapper:hover),
-.premium-input :deep(.el-input__wrapper.is-focus) {
-  border-color: var(--pm-primary-color);
-  background-color: var(--pm-bg-secondary);
-}
-
 .submit-action {
   margin-top: 34px;
 }
 
 .login-btn {
   width: 100%;
-  font-weight: 600;
-  border-radius: 12px;
   height: 50px;
   font-size: 15px;
+  font-weight: 600;
   letter-spacing: 0.02em;
-  box-shadow: 0 10px 24px rgba(0, 113, 227, 0.28);
-  transition: transform 0.2s var(--pm-ease-out), box-shadow 0.2s var(--pm-ease-out);
-}
-
-.login-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 28px rgba(0, 113, 227, 0.32);
 }
 
 @media (max-width: 768px) {

@@ -2,179 +2,205 @@
   <div class="settings-card">
     <div class="settings-header">
       <h3>{{ lang.account_management }}</h3>
-      <p class="settings-desc">{{ lang.account_management_desc }}</p>
+      <p class="settings-desc">
+        {{ lang.account_management_desc }}
+      </p>
+    </div>
+
+    <div class="table-toolbar">
+      <a-button
+        type="primary"
+        size="small"
+        @click="createUser"
+      >
+        <template #icon>
+          <IconPlus />
+        </template>
+        New
+      </a-button>
     </div>
 
     <div class="table-container">
-      <el-table :data="userList" class="modern-table" style="width: 100%">
-        <el-table-column label="ID" prop="ID" width="80"/>
-        <el-table-column :label="lang.account" prop="Account" min-width="150" show-overflow-tooltip/>
-        <el-table-column :label="lang.user_name" prop="Name" min-width="120" show-overflow-tooltip/>
-        <el-table-column :label="lang.disabled" prop="Disabled" width="120">
-          <template #default="scope">
-            <el-tag :type="scope.row.Disabled === 1 ? 'info' : 'success'" size="small" effect="plain" class="status-tag">
-              {{ scope.row.Disabled === 1 ? lang.disabled : lang.enabled }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column align="right" width="100">
-          <template #header>
-            <el-button type="primary" size="small" @click="createUser" class="new-btn" plain>
-              <el-icon><Plus/></el-icon> New
-            </el-button>
-          </template>
-          <template #default="scope">
-            <el-button size="small" type="primary" text bg @click="handleEdit(scope.$index, scope.row)" class="action-btn">
-              Edit
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <a-table
+        :data="userList"
+        :columns="columns"
+        :pagination="false"
+        class="modern-table"
+      >
+        <template #status="{ record }">
+          <a-tag
+            :color="record.Disabled === 1 ? 'gray' : 'green'"
+            size="small"
+          >
+            {{ record.Disabled === 1 ? lang.disabled : lang.enabled }}
+          </a-tag>
+        </template>
+        <template #actions="{ record }">
+          <a-button
+            size="small"
+            type="text"
+            @click="handleEdit(record)"
+          >
+            Edit
+          </a-button>
+        </template>
+      </a-table>
     </div>
 
     <div class="pagination-wrapper">
-      <el-pagination 
-        v-model:current-page="currentPage" 
-        small 
-        background 
-        layout="prev, pager, next"
-        :page-count="totalPage" 
-        @current-change="reflushList"
+      <a-pagination
+        :current="currentPage"
+        :total="totalPage * 10"
+        :page-size="10"
+        @change="handlePageChange"
       />
     </div>
 
-    <el-dialog v-model="userInfoDialog" :title="title" width="450px" class="premium-dialog">
+    <a-modal
+      v-model:visible="userInfoDialog"
+      :title="title"
+      :width="450"
+      :ok-text="lang.submit"
+      :cancel-text="lang.cancel"
+      @ok="submit"
+    >
       <div class="dialog-content">
-        <el-form label-position="top">
-          <el-form-item :label="lang.account">
-            <el-input :disabled="editModel === 'edit'" v-model="editUserInfo.account"/>
-          </el-form-item>
+        <a-form
+          :model="editUserInfo"
+          layout="vertical"
+        >
+          <a-form-item :label="lang.account">
+            <a-input
+              v-model="editUserInfo.account"
+              :disabled="editModel === 'edit'"
+            />
+          </a-form-item>
 
-          <el-form-item :label="lang.user_name">
-            <el-input v-model="editUserInfo.name"/>
-          </el-form-item>
+          <a-form-item :label="lang.user_name">
+            <a-input v-model="editUserInfo.name" />
+          </a-form-item>
 
-          <el-form-item :label="lang.password">
-            <el-input :placeholder="lang.resetPwd" v-model="editUserInfo.password" type="password" show-password/>
-          </el-form-item>
+          <a-form-item :label="lang.password">
+            <a-input-password
+              v-model="editUserInfo.password"
+              :placeholder="lang.resetPwd"
+            />
+          </a-form-item>
 
-          <el-form-item>
+          <a-form-item>
             <div class="status-switch">
               <span class="switch-label">Status</span>
-              <el-switch 
-                v-model="editUserInfo.disabled" 
-                class="ml-2" 
-                :active-text="lang.disabled"
-                :inactive-text="lang.enabled"
-                active-color="#ef4444"
-                inactive-color="#10b981"
+              <a-switch
+                v-model="editUserInfo.disabled"
+                :checked-text="lang.disabled"
+                :unchecked-text="lang.enabled"
+                checked-color="#ef4444"
+                unchecked-color="#10b981"
               />
             </div>
-          </el-form-item>
-        </el-form>
+          </a-form-item>
+        </a-form>
       </div>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="userInfoDialog = false">Cancel</el-button>
-          <el-button type="primary" @click="submit">Confirm</el-button>
-        </span>
-      </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
-<script setup>
-import {reactive, ref} from 'vue'
-import lang from '../i18n/i18n';
-import {http} from "@/utils/axios";
-import {ElNotification} from "element-plus";
-import {Plus} from "@element-plus/icons-vue";
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import { Notification } from '@arco-design/web-vue'
+import { IconPlus } from '@arco-design/web-vue/es/icon'
+import lang from '@/i18n/i18n'
+import { http } from '@/utils/axios'
 
-const userList = reactive([])
+interface UserItem {
+  ID: number
+  Account: string
+  Name: string
+  Disabled: number
+}
+
+interface UserListResponse {
+  current_page: number
+  total_page: number
+  list: UserItem[]
+}
+
+const userList = ref<UserItem[]>([])
 const currentPage = ref(1)
 const totalPage = ref(1)
 const userInfoDialog = ref(false)
-const editModel = ref("edit")
+const editModel = ref<'edit' | 'create'>('edit')
 const editUserInfo = reactive({
-  "account": "",
-  "name": "",
-  "password": "",
-  "disabled": false
+  account: '',
+  name: '',
+  password: '',
+  disabled: false
 })
 const title = ref(lang.editUser)
 
-const reflushList = function () {
-  http.post('/api/user/list', {"current_page": currentPage.value, "page_size": 10}).then(res => {
-    userList.length = 0
-    totalPage.value = res.data.total_page
-    if (res.data["list"]) {
-      userList.push(...res.data["list"])
-    }
+const columns = [
+  { title: 'ID', dataIndex: 'ID', width: 80 },
+  { title: lang.account, dataIndex: 'Account', ellipsis: true, tooltip: true },
+  { title: lang.user_name, dataIndex: 'Name', ellipsis: true, tooltip: true },
+  { title: lang.disabled, dataIndex: 'Disabled', slotName: 'status', width: 120 },
+  { title: '', slotName: 'actions', width: 100, align: 'right' as const }
+]
+
+const reflushList = () => {
+  http.post<UserListResponse>('/api/user/list', { current_page: currentPage.value, page_size: 10 }).then((res) => {
+    userList.value = res.data?.list ?? []
+    totalPage.value = res.data?.total_page ?? 1
   })
 }
 
-const handleEdit = function (idx, row) {
+const handlePageChange = (page: number) => {
+  currentPage.value = page
+  reflushList()
+}
+
+const handleEdit = (row: UserItem) => {
   editUserInfo.account = row.Account
   editUserInfo.name = row.Name
   editUserInfo.disabled = row.Disabled === 1
-  editUserInfo.password = ""
-  editModel.value = "edit"
+  editUserInfo.password = ''
+  editModel.value = 'edit'
   title.value = lang.editUser
   userInfoDialog.value = true
 }
 
-const createUser = function () {
-  editUserInfo.account = ""
-  editUserInfo.name = ""
+const createUser = () => {
+  editUserInfo.account = ''
+  editUserInfo.name = ''
   editUserInfo.disabled = false
-  editUserInfo.password = ""
-  editModel.value = "create"
+  editUserInfo.password = ''
+  editModel.value = 'create'
   title.value = lang.newUser
   userInfoDialog.value = true
 }
 
-const submit = function () {
-  if (editModel.value === 'edit') {
-    let newData = {
-      "account": editUserInfo.account,
-      "username": editUserInfo.name,
-      "disabled": editUserInfo.disabled ? 1 : 0
-    }
-    if (editUserInfo.password !== "") {
-      newData["password"] = editUserInfo.password
-    }
-
-    http.post('/api/user/edit', newData).then(res => {
-      ElNotification({
-        title: res.errorNo === 0 ? lang.succ : lang.fail,
-        message: res.errorNo === 0 ? "" : res.data,
-        type: res.errorNo === 0 ? 'success' : 'error',
-      })
-      if (res.errorNo === 0) {
-        reflushList()
-        userInfoDialog.value = false
-      }
-    })
-  } else {
-    let newData = {
-      "account": editUserInfo.account,
-      "username": editUserInfo.name,
-      "disabled": editUserInfo.disabled ? 1 : 0,
-      "password": editUserInfo.password
-    }
-
-    http.post('/api/user/create', newData).then(res => {
-      ElNotification({
-        title: res.errorNo === 0 ? lang.succ : lang.fail,
-        message: res.errorNo === 0 ? "" : res.data,
-        type: res.errorNo === 0 ? 'success' : 'error',
-      })
-      if (res.errorNo === 0) {
-        reflushList()
-        userInfoDialog.value = false
-      }
-    })
+const submit = () => {
+  const newData: Record<string, string | number> = {
+    account: editUserInfo.account,
+    username: editUserInfo.name,
+    disabled: editUserInfo.disabled ? 1 : 0
   }
+  if (editUserInfo.password !== '') {
+    newData.password = editUserInfo.password
+  }
+  const api = editModel.value === 'edit' ? '/api/user/edit' : '/api/user/create'
+  if (editModel.value === 'create' && !newData.password) {
+    newData.password = ''
+  }
+  http.post<string>(api, newData).then((res) => {
+    Notification[res.errorNo === 0 ? 'success' : 'error']({
+      title: res.errorNo === 0 ? lang.succ : lang.fail,
+      content: res.errorNo === 0 ? '' : res.data
+    })
+    if (res.errorNo === 0) {
+      reflushList()
+      userInfoDialog.value = false
+    }
+  })
 }
 
 reflushList()
@@ -202,6 +228,12 @@ reflushList()
   margin: 0;
 }
 
+.table-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
 .table-container {
   border: 1px solid var(--pm-border-color);
   border-radius: var(--pm-radius-sm);
@@ -209,36 +241,10 @@ reflushList()
   margin-bottom: 24px;
 }
 
-.modern-table :deep(th.el-table__cell) {
-  background-color: var(--pm-bg-secondary);
-  color: var(--pm-text-secondary);
-  font-weight: 600;
-}
-
-.status-tag {
-  border-radius: var(--pm-radius-sm);
-}
-
-.new-btn {
-  border-radius: var(--pm-radius-sm);
-}
-
-.action-btn {
-  border-radius: var(--pm-radius-sm);
-  padding: 4px 12px;
-}
-
 .pagination-wrapper {
   margin-top: 20px;
   display: flex;
   justify-content: center;
-}
-
-/* Dialog Styles */
-.premium-dialog :deep(.el-dialog__header) {
-  border-bottom: 1px solid var(--pm-border-color);
-  padding-bottom: 16px;
-  margin-bottom: 20px;
 }
 
 .dialog-content {

@@ -2,224 +2,382 @@
   <div class="settings-card">
     <div class="settings-header">
       <h3>{{ lang.auto_rules }}</h3>
-      <p class="settings-desc">{{ lang.auto_rules_desc }}</p>
+      <p class="settings-desc">
+        {{ lang.auto_rules_desc }}
+      </p>
     </div>
 
     <div class="table-container">
-      <el-table :data="data" class="modern-table" style="width: 100%">
-        <el-table-column prop="name" :label="lang.rule_name" min-width="150" show-overflow-tooltip/>
-        <el-table-column prop="action" :label="lang.rule_do" width="120">
-          <template #default="scope">
-            <el-tag size="small" effect="plain" class="action-tag">{{ ActionName[scope.row.action] }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="params" :label="lang.rule_params" min-width="150" show-overflow-tooltip/>
-        <el-table-column prop="sort" :label="lang.rule_priority" width="100"/>
-        <el-table-column width="100" align="right">
-          <template #default="scope">
-            <div class="row-actions">
-              <el-button size="small" type="primary" :icon="Edit" circle text @click="editRule(scope.row)"/>
-              <el-popconfirm confirm-button-text="Yes" cancel-button-text="No" :icon="InfoFilled"
-                             @confirm="delRule(scope.row.id)" icon-color="#ef4444" :title="lang.del_rule_confirm">
-                <template #reference>
-                  <el-button size="small" type="danger" :icon="Delete" circle text/>
+      <a-table
+        :data="data"
+        :columns="columns"
+        :pagination="false"
+        class="modern-table"
+      >
+        <template #action="{ record }">
+          <a-tag size="small">
+            {{ actionName[record.action] }}
+          </a-tag>
+        </template>
+        <template #actions="{ record }">
+          <a-space>
+            <a-button
+              size="small"
+              type="text"
+              @click="editRule(record)"
+            >
+              <template #icon>
+                <IconEdit />
+              </template>
+            </a-button>
+            <a-popconfirm
+              :content="lang.del_rule_confirm"
+              @ok="delRule(record.id)"
+            >
+              <a-button
+                size="small"
+                status="danger"
+                type="text"
+              >
+                <template #icon>
+                  <IconDelete />
                 </template>
-              </el-popconfirm>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+              </a-button>
+            </a-popconfirm>
+          </a-space>
+        </template>
+      </a-table>
     </div>
 
     <div class="form-actions">
-      <el-button type="primary" @click="dialogVisible = true" class="add-btn">
-        <el-icon><Plus /></el-icon> {{ lang.new_rule }}
-      </el-button>
+      <a-button
+        type="primary"
+        class="add-btn"
+        @click="dialogVisible = true"
+      >
+        <template #icon>
+          <IconPlus />
+        </template>
+        {{ lang.new_rule }}
+      </a-button>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="addRuleForm.id > 0 ? 'Edit Rule' : lang.new_rule" width="700px" class="premium-dialog">
+    <a-modal
+      v-model:visible="dialogVisible"
+      :title="addRuleForm.id > 0 ? 'Edit Rule' : lang.new_rule"
+      :width="760"
+      :ok-text="lang.submit"
+      :cancel-text="lang.cancel"
+      @ok="submitRule"
+    >
       <div class="dialog-content">
-        <el-form :model="addRuleForm" label-position="top">
+        <a-form
+          :model="addRuleForm"
+          layout="vertical"
+        >
           <div class="form-row">
-            <el-form-item :label="lang.rule_name" class="flex-grow">
-              <el-input v-model="addRuleForm.name" placeholder="Rule Name"/>
-            </el-form-item>
-            <el-form-item :label="lang.rule_priority" class="w-32">
-              <el-input v-model="addRuleForm.sort" type="number" oninput="value=value.replace(/[^\-\d]/g, '')"/>
-            </el-form-item>
+            <a-form-item
+              :label="lang.rule_name"
+              class="flex-grow"
+            >
+              <a-input
+                v-model="addRuleForm.name"
+                placeholder="Rule Name"
+              />
+            </a-form-item>
+            <a-form-item
+              :label="lang.rule_priority"
+              class="w-32"
+            >
+              <a-input-number
+                v-model="addRuleForm.sort"
+                :min="0"
+                class="w-full"
+              />
+            </a-form-item>
           </div>
-          
-          <el-divider class="custom-divider"/>
-          <div class="section-title">{{ lang.rule_desc }} (Conditions)</div>
-          
+
+          <a-divider class="custom-divider" />
+          <div class="section-title">
+            {{ lang.rule_desc }} (Conditions)
+          </div>
+
           <div class="rules-list">
-            <div v-for="(rule, index) in addRuleForm.rules" :key="index" class="rule-line">
-              <el-select v-model="rule.field" placeholder="Field" class="w-32">
-                <el-option key="From" :label="lang.from" value="From"/>
-                <el-option key="Subject" :label="lang.subject" value="Subject"/>
-                <el-option key="To" :label="lang.to" value="To"/>
-                <el-option key="Cc" :label="lang.cc" value="Cc"/>
-                <el-option key="Content" :label="lang.content" value="Content"/>
-              </el-select>
+            <div
+              v-for="(rule, index) in addRuleForm.rules"
+              :key="index"
+              class="rule-line"
+            >
+              <a-select
+                v-model="rule.field"
+                placeholder="Field"
+                class="w-32"
+              >
+                <a-option
+                  value="From"
+                  :label="lang.from"
+                />
+                <a-option
+                  value="Subject"
+                  :label="lang.subject"
+                />
+                <a-option
+                  value="To"
+                  :label="lang.to"
+                />
+                <a-option
+                  value="Cc"
+                  :label="lang.cc"
+                />
+                <a-option
+                  value="Content"
+                  :label="lang.content"
+                />
+              </a-select>
 
-              <el-select v-model="rule.type" placeholder="Type" class="w-32">
-                <el-option key="equal" :label="lang.equal" value="equal"/>
-                <el-option key="contains" :label="lang.contains" value="contains"/>
-                <el-option key="regex" :label="lang.regex" value="regex"/>
-              </el-select>
+              <a-select
+                v-model="rule.type"
+                placeholder="Type"
+                class="w-32"
+              >
+                <a-option
+                  value="equal"
+                  :label="lang.equal"
+                />
+                <a-option
+                  value="contains"
+                  :label="lang.contains"
+                />
+                <a-option
+                  value="regex"
+                  :label="lang.regex"
+                />
+              </a-select>
 
-              <el-input v-model="rule.rule" placeholder="Value" class="flex-grow"/>
-              <el-button type="danger" :icon="Delete" @click="removeRuleLine(index)" text circle/>
+              <a-input
+                v-model="rule.rule"
+                placeholder="Value"
+                class="flex-grow"
+              />
+              <a-button
+                type="text"
+                status="danger"
+                @click="removeRuleLine(index)"
+              >
+                <template #icon>
+                  <IconDelete />
+                </template>
+              </a-button>
             </div>
           </div>
           <div class="add-condition-action">
-            <el-button size="small" type="primary" plain @click="addRule()"><el-icon><Plus/></el-icon> Add Condition</el-button>
+            <a-button
+              size="small"
+              type="primary"
+              @click="addRule"
+            >
+              <template #icon>
+                <IconPlus />
+              </template>
+              Add Condition
+            </a-button>
           </div>
 
-          <el-divider class="custom-divider"/>
-          <div class="section-title">{{ lang.rule_do }} (Action)</div>
-          
+          <a-divider class="custom-divider" />
+          <div class="section-title">
+            {{ lang.rule_do }} (Action)
+          </div>
+
           <div class="action-row">
-            <el-select v-model="addRuleForm.action" placeholder="Select Action" @change="ruleTypeChange" class="w-48">
-              <el-option key="mark_read" :label="lang.mark_read" :value="READ"/>
-              <el-option key="move" :label="lang.move" :value="MOVE"/>
-              <el-option key="delete" :label="lang.delete" :value="DELETE"/>
-              <el-option key="forward" :label="lang.forward" :value="FORWARD"/>
-            </el-select>
-            
-            <el-select v-if="addRuleForm.action === 4" v-model="addRuleForm.params" @click="reflushGroupInfos" placeholder="Select Folder" class="flex-grow">
-              <el-option v-for="gp in groupData.list" :key="gp.id" :label="gp.name" :value="gp.id"/>
-            </el-select>
+            <a-select
+              v-model="addRuleForm.action"
+              placeholder="Select Action"
+              class="w-48"
+              @change="ruleTypeChange"
+            >
+              <a-option
+                :value="READ"
+                :label="lang.mark_read"
+              />
+              <a-option
+                :value="MOVE"
+                :label="lang.move"
+              />
+              <a-option
+                :value="DELETE"
+                :label="lang.delete"
+              />
+              <a-option
+                :value="FORWARD"
+                :label="lang.forward"
+              />
+            </a-select>
 
-            <el-input v-if="addRuleForm.action === 2" v-model="addRuleForm.params" class="flex-grow" placeholder="Forward Email Address"/>
+            <a-select
+              v-if="addRuleForm.action === MOVE"
+              v-model="addRuleForm.params"
+              placeholder="Select Folder"
+              class="flex-grow"
+            >
+              <a-option
+                v-for="gp in groupData.list"
+                :key="gp.id"
+                :label="gp.name"
+                :value="gp.id"
+              />
+            </a-select>
+
+            <a-input
+              v-if="addRuleForm.action === FORWARD"
+              v-model="addRuleForm.params"
+              class="flex-grow"
+              placeholder="Forward Email Address"
+            />
           </div>
-        </el-form>
+        </a-form>
       </div>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">Cancel</el-button>
-          <el-button type="primary" @click="submitRule()">
-            {{ lang.submit }}
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
+    </a-modal>
   </div>
 </template>
 
-<script setup>
-import {reactive, ref} from 'vue';
-import lang from '../i18n/i18n';
-import {Delete, Edit, InfoFilled, Plus} from '@element-plus/icons-vue'
-import {http} from "@/utils/axios";
-import {ElNotification} from "element-plus";
+<script setup lang="ts">
+import { reactive, ref } from 'vue'
+import { Notification } from '@arco-design/web-vue'
+import { IconDelete, IconEdit, IconPlus } from '@arco-design/web-vue/es/icon'
+import lang from '@/i18n/i18n'
+import { http } from '@/utils/axios'
 
-const data = ref([])
+interface RuleCondition {
+  field: string
+  type: string
+  rule: string
+}
+
+interface RuleItem {
+  id: number
+  name: string
+  sort: number
+  rules: RuleCondition[]
+  action: number
+  params: string
+}
+
+interface GroupOption {
+  id: string
+  name: string
+}
+
+interface RuleForm {
+  id: number
+  name: string
+  sort: number
+  rules: RuleCondition[]
+  action: number | ''
+  params: string
+}
+
+const data = ref<RuleItem[]>([])
 const dialogVisible = ref(false)
 const READ = 1
 const FORWARD = 2
 const DELETE = 3
 const MOVE = 4
 
-const ActionName = {
-  1: lang.mark_read,
-  2: lang.forward,
-  3: lang.delete,
-  4: lang.move
+const actionName: Record<number, string> = {
+  [READ]: lang.mark_read,
+  [FORWARD]: lang.forward,
+  [DELETE]: lang.delete,
+  [MOVE]: lang.move
 }
 
-const init = function () {
-  http.post("/api/rule/get").then((res) => {
-    data.value = res.data || []
+const columns = [
+  { title: lang.rule_name, dataIndex: 'name', ellipsis: true, tooltip: true },
+  { title: lang.rule_do, dataIndex: 'action', slotName: 'action', width: 120 },
+  { title: lang.rule_params, dataIndex: 'params', ellipsis: true, tooltip: true },
+  { title: lang.rule_priority, dataIndex: 'sort', width: 160 },
+  { title: '', slotName: 'actions', width: 100, align: 'right' as const }
+]
+
+const groupData = reactive<{ list: GroupOption[] }>({ list: [] })
+
+const addRuleForm = reactive<RuleForm>({
+  id: 0,
+  name: '',
+  sort: 0,
+  rules: [{ field: '', type: '', rule: '' }],
+  action: '',
+  params: ''
+})
+
+const init = () => {
+  http.post<RuleItem[]>('/api/rule/get').then((res) => {
+    data.value = res.data ?? []
   })
 }
 
 init()
 
-const groupData = reactive({
-  list: []
-})
-
-const reflushGroupInfos = function () {
-  http.get('/api/group/list').then(res => {
+const reflushGroupInfos = () => {
+  http.get<GroupOption[]>('/api/group/list').then((res) => {
     if (res.data != null) {
-      groupData.list = res.data
-      for (let i = 0; i < groupData.list.length; i++) {
-        groupData.list[i].id += ""
-      }
+      groupData.list = res.data.map((item) => ({ ...item, id: String(item.id) }))
     }
   })
 }
 
 reflushGroupInfos()
 
-const addRuleForm = reactive({
-  "id": 0,
-  "name": "",
-  "sort": 0,
-  "rules": [{"field": "", "type": "", "rule": ""}],
-  "action": "",
-  "params": ""
-})
-
-const delRule = function (id) {
-  http.post("/api/rule/del", {"id": id}).then((res) => {
-    ElNotification({
+const delRule = (id: number) => {
+  http.post<string>('/api/rule/del', { id }).then((res) => {
+    Notification[res.errorNo === 0 ? 'success' : 'error']({
       title: res.errorNo === 0 ? lang.succ : lang.fail,
-      message: res.data,
-      type: res.errorNo === 0 ? 'success' : 'error',
+      content: res.data
     })
     init()
   })
 }
 
-const editRule = function (ruleInfo) {
+const editRule = (ruleInfo: RuleItem) => {
   addRuleForm.id = ruleInfo.id
   addRuleForm.name = ruleInfo.name
-  addRuleForm.rules = ruleInfo.rules || []
+  addRuleForm.rules = ruleInfo.rules ?? []
   addRuleForm.action = ruleInfo.action
   addRuleForm.params = ruleInfo.params
   addRuleForm.sort = ruleInfo.sort
   dialogVisible.value = true
 }
 
-const removeRuleLine = function (index) {
-  addRuleForm.rules.splice(index, 1);
+const removeRuleLine = (index: number) => {
+  addRuleForm.rules.splice(index, 1)
 }
 
-const addRule = function () {
-  addRuleForm.rules.push({"field": "", "type": "", "rule": ""})
+const addRule = () => {
+  addRuleForm.rules.push({ field: '', type: '', rule: '' })
 }
 
-const submitRule = function () {
-  let api = "/api/rule/add"
-  if (addRuleForm.id > 0) {
-    api = "/api/rule/update"
-  }
+const resetForm = () => {
+  addRuleForm.id = 0
+  addRuleForm.name = ''
+  addRuleForm.sort = 0
+  addRuleForm.rules = [{ field: '', type: '', rule: '' }]
+  addRuleForm.action = ''
+  addRuleForm.params = ''
+}
 
-  addRuleForm.sort = parseInt(addRuleForm.sort)
-
-  http.post(api, addRuleForm).then((res) => {
+const submitRule = () => {
+  const api = addRuleForm.id > 0 ? '/api/rule/update' : '/api/rule/add'
+  http.post<string>(api, addRuleForm).then((res) => {
     if (res.errorNo !== 0) {
-      ElNotification({
-        title: lang.fail,
-        message: res.data,
-        type: 'error',
-      })
-    } else {
-      init()
-      dialogVisible.value = false
-      addRuleForm.id = 0
-      addRuleForm.name = ""
-      addRuleForm.sort = 0
-      addRuleForm.rules = [{"field": "", "type": "", "rule": ""}]
-      addRuleForm.action = ""
-      addRuleForm.params = ""
+      Notification.error({ title: lang.fail, content: res.data })
+      return
     }
+    init()
+    dialogVisible.value = false
+    resetForm()
   })
 }
 
-const ruleTypeChange = function () {
+const ruleTypeChange = () => {
   addRuleForm.params = ''
 }
 </script>
@@ -253,41 +411,9 @@ const ruleTypeChange = function () {
   margin-bottom: 24px;
 }
 
-.modern-table :deep(th.el-table__cell) {
-  background-color: var(--pm-bg-secondary);
-  color: var(--pm-text-secondary);
-  font-weight: 600;
-}
-
-.action-tag {
-  border-radius: var(--pm-radius-sm);
-}
-
-.row-actions {
-  display: flex;
-  justify-content: flex-end;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.modern-table :deep(tr:hover) .row-actions {
-  opacity: 1;
-}
-
 .form-actions {
   display: flex;
   justify-content: flex-start;
-}
-
-.add-btn {
-  border-radius: var(--pm-radius-sm);
-}
-
-/* Dialog Styles */
-.premium-dialog :deep(.el-dialog__header) {
-  border-bottom: 1px solid var(--pm-border-color);
-  padding-bottom: 16px;
-  margin-bottom: 20px;
 }
 
 .dialog-content {
@@ -296,6 +422,7 @@ const ruleTypeChange = function () {
 
 .form-row {
   display: flex;
+  align-items: flex-start;
   gap: 16px;
 }
 
@@ -304,11 +431,17 @@ const ruleTypeChange = function () {
 }
 
 .w-32 {
-  width: 120px;
+  width: 170px;
+  flex-shrink: 0;
 }
 
 .w-48 {
-  width: 180px;
+  width: 200px;
+  flex-shrink: 0;
+}
+
+.w-full {
+  width: 100%;
 }
 
 .section-title {
@@ -343,6 +476,5 @@ const ruleTypeChange = function () {
 
 .custom-divider {
   margin: 24px 0;
-  border-color: var(--pm-border-color);
 }
 </style>

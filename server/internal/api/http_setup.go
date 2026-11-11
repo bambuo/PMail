@@ -24,7 +24,7 @@ func StartSetupHTTP() {
 	if err != nil {
 		panic(err)
 	}
-	mux.Handle("/", http.FileServer(http.FS(fe)))
+	mux.Handle("/", httpServerSPAHandler(fe))
 	mux.HandleFunc("/api/", httpServerContextIterceptor(HTTPSetup))
 	// 挑战请求类似这样 /.well-known/acme-challenge/QPyMAyaWw9s5JvV1oruyqWHG7OqkHMJEHPoUz2046KM
 	mux.HandleFunc("/.well-known/", HTTPAcmeChallenge)

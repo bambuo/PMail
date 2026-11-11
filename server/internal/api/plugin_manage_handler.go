@@ -100,6 +100,41 @@ func HTTPPluginManageReload(ctx *pcontext.Context, w http.ResponseWriter, req *h
 	pluginManageSimpleAction(ctx, w, req, "reload", app.ReloadPlugin, string(plugin.StatusEnabled))
 }
 
+const maxPluginUploadBytes = 32 << 20
+
+func HTTPPluginManageUpload(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
+	if !pluginManageRequireMethod(w, req, http.MethodPost) || !pluginManageRequireAdmin(ctx, w) {
+		return
+	}
+	req.Body = http.MaxBytesReader(w, req.Body, maxPluginUploadBytes+1<<20)
+	if err := req.ParseMultipartForm(maxPluginUploadBytes); err != nil {
+		pluginManageFail(w, response.ParamsError, fmt.Errorf("parse upload: %w", err))
+		return
+	}
+	file, _, err := req.FormFile("file")
+	if err != nil {
+		pluginManageFail(w, response.ParamsError, errors.New("file is required"))
+		return
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, maxPluginUploadBytes+1))
+	if err != nil {
+		pluginManageFail(w, response.ParamsError, fmt.Errorf("read upload: %w", err))
+		return
+	}
+	if len(data) == 0 || len(data) > maxPluginUploadBytes {
+		pluginManageFail(w, response.ParamsError, fmt.Errorf("file must be between 1 byte and %d bytes", maxPluginUploadBytes))
+		return
+	}
+	info, err := app.InstallPlugin(data)
+	if err != nil {
+		pluginManageFail(w, response.ParamsError, err)
+		return
+	}
+	log.WithContext(ctx).Infof("plugin_manage action=upload plugin=%s operator=%s", info.ID, ctx.UserAccount)
+	response.NewSuccessResponse(info).FPrint(w)
+}
+
 func pluginManageSimpleAction(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request, actionName string, action func(*pcontext.Context, string) error, status string) {
 	if !pluginManageRequireMethod(w, req, http.MethodPost) || !pluginManageRequireAdmin(ctx, w) {
 		return

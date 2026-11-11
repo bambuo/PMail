@@ -1,8 +1,11 @@
 <template>
   <div class="header-container">
     <div class="header-left">
-      <div class="mobile-menu-btn" @click="globalStatus.mobileDrawerVisible = true">
-        <el-icon><EpMenu /></el-icon>
+      <div
+        class="mobile-menu-btn"
+        @click="globalStatus.mobileDrawerVisible = true"
+      >
+        <IconMenu />
       </div>
       <div class="mobile-logo">
         <router-link to="/">
@@ -10,69 +13,87 @@
         </router-link>
       </div>
     </div>
-    
-    <div class="header-right">
-    </div>
 
+    <div class="header-right" />
   </div>
 
-  <!-- Settings Dialog -->
-  <el-dialog
-      v-model="globalStatus.settingsDrawerVisible"
-      :title="lang.settings"
-      width="min(1200px, 94vw)"
-      top="4vh"
-      append-to-body
-      class="settings-dialog"
+  <a-modal
+    v-model:visible="globalStatus.settingsDrawerVisible"
+    :title="lang.settings"
+    width="min(1200px, 94vw)"
+    top="4vh"
+    :footer="false"
+    modal-class="settings-dialog"
   >
-    <el-tabs v-model="activeTab" :tab-position="isMobile ? 'top' : 'left'" class="settings-tabs">
-      <el-tab-pane name="security" :label="lang.security">
-        <SecuritySettings/>
-      </el-tab-pane>
-      <el-tab-pane name="group" :label="lang.group_settings">
-        <GroupSettings/>
-      </el-tab-pane>
-      <el-tab-pane name="rule" :label="lang.rule_setting">
-        <RuleSettings/>
-      </el-tab-pane>
-      <el-tab-pane v-if="userInfos.is_admin" name="user" :label="lang.user_management">
-        <UserManagement/>
-      </el-tab-pane>
-      <el-tab-pane name="plugins" :label="lang.plugin_settings">
-        <PluginSettings/>
-      </el-tab-pane>
-    </el-tabs>
-  </el-dialog>
+    <a-tabs
+      v-model:active-key="activeTab"
+      :position="isMobile ? 'top' : 'left'"
+      class="settings-tabs"
+    >
+      <a-tab-pane key="security">
+        <template #title>
+          <span class="tab-title"><IconLock />{{ lang.security }}</span>
+        </template>
+        <SecuritySettings />
+      </a-tab-pane>
+      <a-tab-pane key="group">
+        <template #title>
+          <span class="tab-title"><IconFolder />{{ lang.group_settings }}</span>
+        </template>
+        <GroupSettings />
+      </a-tab-pane>
+      <a-tab-pane key="rule">
+        <template #title>
+          <span class="tab-title"><IconFilter />{{ lang.rule_setting }}</span>
+        </template>
+        <RuleSettings />
+      </a-tab-pane>
+      <a-tab-pane
+        v-if="userInfos.is_admin"
+        key="user"
+      >
+        <template #title>
+          <span class="tab-title"><IconUser />{{ lang.user_management }}</span>
+        </template>
+        <UserManagement />
+      </a-tab-pane>
+      <a-tab-pane key="plugins">
+        <template #title>
+          <span class="tab-title"><IconApps />{{ lang.plugin_settings }}</span>
+        </template>
+        <PluginSettings />
+      </a-tab-pane>
+    </a-tabs>
+  </a-modal>
 </template>
 
-<script setup>
-import {EpMenu} from "vue-icons-plus/ep";
-import {ref, onMounted, onUnmounted} from 'vue'
+<script setup lang="ts">
+import { IconApps, IconFilter, IconFolder, IconLock, IconMenu, IconUser } from '@arco-design/web-vue/es/icon'
+import { onMounted, onUnmounted, ref } from 'vue'
 import SecuritySettings from '@/components/SecuritySettings.vue'
-import lang from '../i18n/i18n';
-import GroupSettings from './GroupSettings.vue';
-import RuleSettings from './RuleSettings.vue';
-import UserManagement from './UserManagement.vue';
-import PluginSettings from './PluginSettings.vue';
-import {useGlobalStatusStore} from "@/stores/useGlobalStatusStore";
+import GroupSettings from '@/components/GroupSettings.vue'
+import RuleSettings from '@/components/RuleSettings.vue'
+import UserManagement from '@/components/UserManagement.vue'
+import PluginSettings from '@/components/PluginSettings.vue'
+import lang from '@/i18n/i18n'
+import { useGlobalStatusStore } from '@/stores/useGlobalStatusStore'
 
-const globalStatus = useGlobalStatusStore();
-const userInfos = globalStatus.userInfos;
+const globalStatus = useGlobalStatusStore()
+const userInfos = globalStatus.userInfos
 const activeTab = ref('security')
-
-const isMobile = ref(window.innerWidth <= 768);
+const isMobile = ref(window.innerWidth <= 768)
 
 const handleResize = () => {
-  isMobile.value = window.innerWidth <= 768;
-};
+  isMobile.value = window.innerWidth <= 768
+}
 
 onMounted(() => {
-  window.addEventListener('resize', handleResize);
-});
+  window.addEventListener('resize', handleResize)
+})
 
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
-});
+  window.removeEventListener('resize', handleResize)
+})
 </script>
 
 <style scoped>
@@ -80,7 +101,8 @@ onUnmounted(() => {
   display: none;
 }
 
-.header-left, .header-right {
+.header-left,
+.header-right {
   display: flex;
   align-items: center;
 }
@@ -122,29 +144,11 @@ onUnmounted(() => {
   text-decoration: none;
 }
 
-.settings-btn {
-  font-size: 22px;
-  color: var(--pm-text-secondary);
-  cursor: pointer;
-  padding: 8px;
-  border-radius: var(--pm-radius-md);
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.settings-btn:hover {
-  color: var(--pm-primary-color);
-  background-color: var(--el-color-primary-light-9);
-}
-
 .settings-tabs {
   height: 100%;
 }
 
-:global(.settings-dialog .el-dialog__body) {
+:global(.settings-dialog .arco-modal-body) {
   padding-top: 4px;
 }
 
@@ -152,9 +156,15 @@ onUnmounted(() => {
   height: min(76vh, 780px);
 }
 
-:global(.settings-dialog .settings-tabs .el-tabs__content) {
+:global(.settings-dialog .settings-tabs .arco-tabs-content) {
   height: 100%;
   overflow-y: auto;
+}
+
+:global(.settings-dialog .settings-tabs .tab-title) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 @media (max-width: 768px) {

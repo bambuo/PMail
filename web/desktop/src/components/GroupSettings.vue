@@ -2,130 +2,171 @@
   <div class="settings-card">
     <div class="settings-header">
       <h3>{{ lang.email_folders }}</h3>
-      <p class="settings-desc">{{ lang.email_folders_desc }}</p>
+      <p class="settings-desc">
+        {{ lang.email_folders_desc }}
+      </p>
     </div>
 
     <div class="tree-container">
-      <el-tree
-        :expand-on-click-node="false"
-        :data="data"
-        :defaultExpandAll="true"
+      <a-tree
+        :data="treeData"
+        :field-names="{ key: 'key', title: 'label', children: 'children' }"
+        default-expand-all
         class="custom-tree"
-      >
-        <template #default="{ node, data }">
-          <div class="tree-node-content">
-            <div class="node-label">
-              <el-icon class="folder-icon"><Folder /></el-icon>
-              <span v-if="data.id !== -1">{{ data.label }}</span>
-              <el-input
-                v-if="data.id === -1"
-                v-model="data.label"
-                size="small"
-                :placeholder="lang.folder_name"
-                class="node-input"
-                @blur="onInputBlur(data)"
-                @keyup.enter="onInputBlur(data)"
-                ref="newInput"
-                autofocus
-              ></el-input>
-            </div>
-            
-            <div class="node-actions" v-if="data.id !== 0">
-              <el-button @click.stop="add(data)" size="small" type="primary" text bg class="action-btn">
-                <el-icon><Plus /></el-icon>
-              </el-button>
-              <el-button @click.stop="del(node, data)" size="small" type="danger" text bg class="action-btn">
-                <el-icon><Delete /></el-icon>
-              </el-button>
-            </div>
-          </div>
-        </template>
-      </el-tree>
+        @select="handleSelect"
+      />
     </div>
 
     <div class="form-actions">
-      <el-button type="primary" @click="addRoot" class="add-root-btn" plain>
-        <el-icon><Plus /></el-icon> {{ lang.add_group }}
-      </el-button>
+      <a-space>
+        <a-button
+          type="primary"
+          @click="openAddRoot"
+        >
+          <template #icon>
+            <IconPlus />
+          </template>
+          {{ lang.add_group }}
+        </a-button>
+        <a-button
+          :disabled="!selectedNode || selectedNode.id <= 0"
+          @click="openAddChild"
+        >
+          <template #icon>
+            <IconPlus />
+          </template>
+          {{ lang.add_group }}
+        </a-button>
+        <a-button
+          status="danger"
+          :disabled="!selectedNode || selectedNode.id <= 0"
+          @click="removeSelected"
+        >
+          <template #icon>
+            <IconDelete />
+          </template>
+          {{ lang.delete }}
+        </a-button>
+      </a-space>
     </div>
+
+    <a-modal
+      v-model:visible="addVisible"
+      :title="lang.add_group"
+      :ok-text="lang.submit"
+      :cancel-text="lang.cancel"
+      @ok="confirmAdd"
+    >
+      <a-input
+        v-model="addLabel"
+        :placeholder="lang.folder_name"
+        @press-enter="confirmAdd"
+      />
+    </a-modal>
   </div>
 </template>
 
-<script setup>
-import { reactive } from "vue";
-import lang from "../i18n/i18n";
-import { http } from "@/utils/axios";
-import { ElMessage } from "element-plus";
-import { Folder, Delete, Plus } from "@element-plus/icons-vue";
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import { Message } from '@arco-design/web-vue'
+import { IconDelete, IconPlus } from '@arco-design/web-vue/es/icon'
+import lang from '@/i18n/i18n'
+import { http } from '@/utils/axios'
 
-const data = reactive([]);
+interface GroupNode {
+  id: number
+  label: string
+  parent_id?: number
+  tag?: string
+  children?: GroupNode[]
+  key?: string | number
+}
 
-http.get("/api/group").then((res) => {
-  data.push(...res.data);
-});
+interface GroupTreeNode extends GroupNode {
+  key: string | number
+  children: GroupTreeNode[]
+}
 
-const del = function (node, dataObj) {
-  if (dataObj.id !== -1) {
-    http.post("/api/group/del", { id: dataObj.id }).then((res) => {
-      if (res.errorNo !== 0) {
-        ElMessage({ message: res.errorMsg, type: "error" });
-      } else {
-        const pc = node.parent.childNodes;
-        for (let i = 0; i < pc.length; i++) {
-          if (pc[i].id === node.id) {
-            pc.splice(i, 1);
-            return;
-          }
-        }
-      }
-    });
-  } else {
-    const pc = node.parent.childNodes;
-    for (let i = 0; i < pc.length; i++) {
-      if (pc[i].id === node.id) {
-        pc.splice(i, 1);
-        return;
-      }
+const data = ref<GroupNode[]>([])
+const selectedKey = ref<string | number | null>(null)
+const addVisible = ref(false)
+const addLabel = ref('')
+const addParentId = ref(0)
+
+const withKeys = (items: GroupNode[]): GroupTreeNode[] =>
+  items.map((item) => ({
+    ...item,
+    key: item.id > 0 ? item.id : item.tag ?? item.label,
+    children: withKeys(item.children ?? [])
+  }))
+
+const treeData = computed<GroupTreeNode[]>(() => withKeys(data.value))
+
+const findNode = (items: GroupTreeNode[], key: string | number): GroupTreeNode | undefined => {
+  for (const item of items) {
+    if (item.key === key) return item
+    const child = findNode(item.children, key)
+    if (child) return child
+  }
+  return undefined
+}
+
+const selectedNode = computed(() => {
+  if (selectedKey.value === null) return undefined
+  return findNode(treeData.value, selectedKey.value)
+})
+
+const loadGroups = () => {
+  http.get<GroupNode[]>('/api/group').then((res) => {
+    if (res.errorNo === 0) {
+      data.value = res.data ?? []
     }
-  }
-};
+  })
+}
 
-const add = function (item) {
-  if (item.children == null) {
-    item.children = [];
-  }
-  item.children.push({
-    children: [],
-    label: "",
-    id: -1,
-    parent_id: item.id,
-  });
-};
+loadGroups()
 
-const addRoot = function () {
-  data.push({
-    children: [],
-    label: "",
-    id: -1,
-    parent_id: 0,
-  });
-};
+const handleSelect = (keys: Array<string | number>) => {
+  selectedKey.value = keys[0] ?? null
+}
 
-const onInputBlur = function (item) {
-  if (item.label !== "") {
-    http.post("/api/group/add", { name: item.label, parent_id: item.parent_id })
-      .then((res) => {
-        if (res.errorNo !== 0) {
-          ElMessage({ message: res.errorMsg, type: "error" });
-        } else {
-          http.get("/api/group").then((res) => {
-            data.splice(0, data.length);
-            data.push(...res.data);
-          });
-        }
-      });
-  }
-};
+const openAddRoot = () => {
+  addParentId.value = 0
+  addLabel.value = ''
+  addVisible.value = true
+}
+
+const openAddChild = () => {
+  if (!selectedNode.value) return
+  if (selectedNode.value.id <= 0) return
+  addParentId.value = selectedNode.value.id
+  addLabel.value = ''
+  addVisible.value = true
+}
+
+const confirmAdd = () => {
+  if (!addLabel.value.trim()) return
+  http.post('/api/group/add', { name: addLabel.value.trim(), parent_id: addParentId.value }).then((res) => {
+    if (res.errorNo !== 0) {
+      Message.error(res.errorMsg)
+      return
+    }
+    addVisible.value = false
+    loadGroups()
+  })
+}
+
+const removeSelected = () => {
+  if (!selectedNode.value) return
+  http.post('/api/group/del', { id: selectedNode.value.id }).then((res) => {
+    if (res.errorNo !== 0) {
+      Message.error(res.errorMsg)
+      return
+    }
+    selectedKey.value = null
+    loadGroups()
+  })
+}
 </script>
 
 <style scoped>
@@ -162,65 +203,8 @@ const onInputBlur = function (item) {
   background: transparent;
 }
 
-.tree-node-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding-right: 16px;
-}
-
-.node-label {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  color: var(--pm-text-primary);
-}
-
-.folder-icon {
-  margin-right: 8px;
-  color: var(--pm-primary-color);
-  font-size: 16px;
-}
-
-.node-input {
-  width: 200px;
-  margin-left: 8px;
-}
-
-.node-actions {
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.tree-node-content:hover .node-actions {
-  opacity: 1;
-}
-
-.action-btn {
-  padding: 4px 8px;
-  height: 24px;
-}
-
 .form-actions {
   display: flex;
   justify-content: flex-start;
-}
-
-.add-root-btn {
-  border-radius: var(--pm-radius-sm);
-}
-
-/* Override element-plus tree hover styles */
-:deep(.el-tree-node__content) {
-  height: 40px;
-  border-radius: var(--pm-radius-sm);
-  margin-bottom: 4px;
-}
-
-:deep(.el-tree-node__content:hover) {
-  background-color: var(--pm-bg-hover);
 }
 </style>
