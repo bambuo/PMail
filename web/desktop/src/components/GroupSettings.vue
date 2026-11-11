@@ -35,7 +35,7 @@
           <template #icon>
             <IconPlus />
           </template>
-          {{ lang.add_group }}
+          {{ lang.add_sub_group }}
         </a-button>
         <a-button
           status="danger"
@@ -48,6 +48,9 @@
           {{ lang.delete }}
         </a-button>
       </a-space>
+      <p class="group-hint">
+        {{ lang.group_delete_hint }}
+      </p>
     </div>
 
     <a-modal
@@ -68,7 +71,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Message } from '@arco-design/web-vue'
+import { Message, Modal } from '@arco-design/web-vue'
 import { IconDelete, IconPlus } from '@arco-design/web-vue/es/icon'
 import lang from '@/i18n/i18n'
 import { http } from '@/utils/axios'
@@ -83,12 +86,12 @@ interface GroupNode {
 }
 
 interface GroupTreeNode extends GroupNode {
-  key: string | number
+  key: string
   children: GroupTreeNode[]
 }
 
 const data = ref<GroupNode[]>([])
-const selectedKey = ref<string | number | null>(null)
+const selectedKey = ref<string | null>(null)
 const addVisible = ref(false)
 const addLabel = ref('')
 const addParentId = ref(0)
@@ -96,13 +99,13 @@ const addParentId = ref(0)
 const withKeys = (items: GroupNode[]): GroupTreeNode[] =>
   items.map((item) => ({
     ...item,
-    key: item.id > 0 ? item.id : item.tag ?? item.label,
+    key: String(item.id > 0 ? item.id : item.tag ?? item.label),
     children: withKeys(item.children ?? [])
   }))
 
 const treeData = computed<GroupTreeNode[]>(() => withKeys(data.value))
 
-const findNode = (items: GroupTreeNode[], key: string | number): GroupTreeNode | undefined => {
+const findNode = (items: GroupTreeNode[], key: string): GroupTreeNode | undefined => {
   for (const item of items) {
     if (item.key === key) return item
     const child = findNode(item.children, key)
@@ -127,7 +130,7 @@ const loadGroups = () => {
 loadGroups()
 
 const handleSelect = (keys: Array<string | number>) => {
-  selectedKey.value = keys[0] ?? null
+  selectedKey.value = keys[0] === undefined ? null : String(keys[0])
 }
 
 const openAddRoot = () => {
@@ -157,14 +160,24 @@ const confirmAdd = () => {
 }
 
 const removeSelected = () => {
-  if (!selectedNode.value) return
-  http.post('/api/group/del', { id: selectedNode.value.id }).then((res) => {
-    if (res.errorNo !== 0) {
-      Message.error(res.errorMsg)
-      return
+  const target = selectedNode.value
+  if (!target || target.id <= 0) return
+  Modal.confirm({
+    title: lang.delete,
+    content: lang.delete_group_confirm,
+    okText: lang.delete,
+    cancelText: lang.cancel,
+    onOk: () => {
+      http.post('/api/group/del', { id: target.id }).then((res) => {
+        if (res.errorNo !== 0) {
+          Message.error(res.errorMsg)
+          return
+        }
+        Message.success(lang.group_delete_success)
+        selectedKey.value = null
+        loadGroups()
+      })
     }
-    selectedKey.value = null
-    loadGroups()
   })
 }
 </script>
@@ -205,6 +218,14 @@ const removeSelected = () => {
 
 .form-actions {
   display: flex;
-  justify-content: flex-start;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.group-hint {
+  margin: 0;
+  color: var(--pm-text-secondary);
+  font-size: 13px;
 }
 </style>

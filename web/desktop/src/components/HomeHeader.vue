@@ -27,7 +27,7 @@
   >
     <a-tabs
       v-model:active-key="activeTab"
-      :position="isMobile ? 'top' : 'left'"
+      position="top"
       class="settings-tabs"
     >
       <a-tab-pane key="security">
@@ -69,7 +69,7 @@
 
 <script setup lang="ts">
 import { IconApps, IconFilter, IconFolder, IconLock, IconMenu, IconUser } from '@arco-design/web-vue/es/icon'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { ref } from 'vue'
 import SecuritySettings from '@/components/SecuritySettings.vue'
 import GroupSettings from '@/components/GroupSettings.vue'
 import RuleSettings from '@/components/RuleSettings.vue'
@@ -81,19 +81,6 @@ import { useGlobalStatusStore } from '@/stores/useGlobalStatusStore'
 const globalStatus = useGlobalStatusStore()
 const userInfos = globalStatus.userInfos
 const activeTab = ref('security')
-const isMobile = ref(window.innerWidth <= 768)
-
-const handleResize = () => {
-  isMobile.value = window.innerWidth <= 768
-}
-
-onMounted(() => {
-  window.addEventListener('resize', handleResize)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
-})
 </script>
 
 <style scoped>
@@ -153,11 +140,19 @@ onUnmounted(() => {
 }
 
 :global(.settings-dialog .settings-tabs) {
+  display: flex;
+  flex-direction: column;
   height: min(76vh, 780px);
 }
 
+:global(.settings-dialog .settings-tabs .arco-tabs-nav) {
+  flex: none;
+}
+
 :global(.settings-dialog .settings-tabs .arco-tabs-content) {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  height: auto;
   overflow-y: auto;
 }
 

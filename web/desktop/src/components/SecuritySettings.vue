@@ -143,6 +143,10 @@ const submit = async () => {
   width: 100%;
 }
 
+.settings-form {
+  max-width: 360px;
+}
+
 .form-actions {
   margin-top: 24px;
 }
