@@ -45,6 +45,7 @@ type Config struct {
 	IsInit               bool              `json:"isInit"`
 	WebPushUrl           string            `json:"webPushUrl"`
 	WebPushToken         string            `json:"webPushToken"`
+	PluginWasmEnabled    int               `json:"pluginWasmEnabled"` // WASM 插件能力，0关闭，1启用
 	Tables               map[string]string `json:"-"`
 	TablesInitData       map[string]string `json:"-"`
 	setupPort            int               // 初始化阶段端口

@@ -119,6 +119,7 @@ IMAP Port: 993(SSL)
 
 [Spam Block](server/hooks/spam_block/README.md)
 
+[Spam Block (WASM)](server/hooks/spam_block_wasm/README.md): requires `pluginWasmEnabled` and a model service
 
 # Community plugins
 
@@ -126,7 +127,7 @@ IMAP Port: 993(SSL)
 
 ## Plugin Install
 > [!IMPORTANT]
-> Plugins run on your server as independent processes, please review the security of third-party plugins on your own.PMail currently only maintains the three plugins mentioned above.
+> Plugins run on your server as independent processes, please review the security of third-party plugins on your own.PMail currently only maintains the plugins mentioned above.
 
 Copy plugin binary file to `/plugins`
 

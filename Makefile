@@ -1,6 +1,6 @@
-.PHONY: build clean build_fe build_server wechat_push spam_block plugin package test test_mysql test_postgres run run_dev check_arch
+.PHONY: build clean build_fe build_server wechat_push spam_block spam_block_wasm plugin package test test_mysql test_postgres run run_dev check_arch
 
-build: build_fe build_server spam_block wechat_push package
+build: build_fe build_server spam_block spam_block_wasm wechat_push package
 
 clean:
 	rm -rf output
@@ -29,6 +29,10 @@ spam_block:
 	cd server/hooks/spam_block && CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o output/spam_block_mac_amd64  spam_block.go
 	cd server/hooks/spam_block && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o output/spam_block_mac_arm64  spam_block.go
 
+spam_block_wasm:
+	mkdir -p server/hooks/spam_block_wasm/output
+	cd server/hooks/spam_block_wasm && CGO_ENABLED=0 GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -o output/plugin.wasm .
+	cp server/hooks/spam_block_wasm/manifest.json server/hooks/spam_block_wasm/output/manifest.json
 
 
 
@@ -45,6 +49,8 @@ package: clean
 	cp -r server/config/config.json output/config/
 	mv server/hooks/spam_block/output/* output/plugins
 	mv server/hooks/wechat_push/output/* output/plugins
+	mkdir -p output/plugins/wasm/spam_block
+	mv server/hooks/spam_block_wasm/output/* output/plugins/wasm/spam_block/
 	cp README.md output/
 
 test:

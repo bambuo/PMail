@@ -119,6 +119,7 @@ IMAP端口： 993(SSL)
 
 [垃圾邮件屏蔽](server/hooks/spam_block/README.md)
 
+[垃圾邮件屏蔽（WASM 版）](server/hooks/spam_block_wasm/README.md)：需要开启 `pluginWasmEnabled` 并自行部署模型服务
 
 # 其他优秀开源插件
 
@@ -126,7 +127,7 @@ IMAP端口： 993(SSL)
 
 ## 插件安装
 > [!IMPORTANT]
-> 插件已独立进程的方式运行在你的服务器上，请自行审查第三方插件的安全性。PMail目前仅维护上述三款插件
+> 插件已独立进程的方式运行在你的服务器上，请自行审查第三方插件的安全性。PMail目前仅维护上述插件
 
 将插件二进制文件放到`plugins`文件夹中即可
 

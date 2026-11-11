@@ -55,6 +55,12 @@ func httpServerRouter(mux *http.ServeMux) {
 	mux.HandleFunc("/api/user/list", httpServerContextIterceptor(HTTPUserList))
 	mux.HandleFunc("/api/plugin/settings/", httpServerContextIterceptor(HTTPSettingsHtml))
 	mux.HandleFunc("/api/plugin/list", httpServerContextIterceptor(HTTPGetPluginList))
+	mux.HandleFunc("/api/plugin/manage/list", httpServerContextIterceptor(HTTPPluginManageList))
+	mux.HandleFunc("/api/plugin/manage/approve", httpServerContextIterceptor(HTTPPluginManageApprove))
+	mux.HandleFunc("/api/plugin/manage/enable", httpServerContextIterceptor(HTTPPluginManageEnable))
+	mux.HandleFunc("/api/plugin/manage/disable", httpServerContextIterceptor(HTTPPluginManageDisable))
+	mux.HandleFunc("/api/plugin/manage/reject", httpServerContextIterceptor(HTTPPluginManageReject))
+	mux.HandleFunc("/api/plugin/manage/reload", httpServerContextIterceptor(HTTPPluginManageReload))
 }
 
 func StartHTTP() {

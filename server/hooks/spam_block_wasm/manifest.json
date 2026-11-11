@@ -1,0 +1,21 @@
+{
+  "id": "spam_block",
+  "name": "SpamBlock",
+  "version": "1.0.0",
+  "abi": "pmail-hook@1",
+  "entry": "plugin.wasm",
+  "hooks": ["ReceiveParseAfter"],
+  "capabilities": ["log", "email.read", "email.write", "http"],
+  "http_allow": ["127.0.0.1:8501"],
+  "config": {
+    "api_url": "http://127.0.0.1:8501/v1/models/emotion_model:predict",
+    "threshold": "0.20"
+  },
+  "mounts": [],
+  "limits": {
+    "memory_mb": 128,
+    "timeout_ms": 5000,
+    "async_timeout_ms": 10000,
+    "output_bytes": 262144
+  }
+}

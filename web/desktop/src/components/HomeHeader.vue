@@ -16,26 +16,33 @@
 
   </div>
 
-  <!-- Settings Drawer -->
-  <el-drawer v-model="globalStatus.settingsDrawerVisible" :size="isMobile ? '100%' : '600px'" :title="lang.settings" class="settings-drawer" :with-header="true" direction="rtl">
-    <el-tabs :tab-position="isMobile ? 'top' : 'left'" class="settings-tabs">
-      <el-tab-pane :label="lang.security">
+  <!-- Settings Dialog -->
+  <el-dialog
+      v-model="globalStatus.settingsDrawerVisible"
+      :title="lang.settings"
+      width="min(1200px, 94vw)"
+      top="4vh"
+      append-to-body
+      class="settings-dialog"
+  >
+    <el-tabs v-model="activeTab" :tab-position="isMobile ? 'top' : 'left'" class="settings-tabs">
+      <el-tab-pane name="security" :label="lang.security">
         <SecuritySettings/>
       </el-tab-pane>
-      <el-tab-pane :label="lang.group_settings">
+      <el-tab-pane name="group" :label="lang.group_settings">
         <GroupSettings/>
       </el-tab-pane>
-      <el-tab-pane :label="lang.rule_setting">
+      <el-tab-pane name="rule" :label="lang.rule_setting">
         <RuleSettings/>
       </el-tab-pane>
-      <el-tab-pane v-if="userInfos.is_admin" :label="lang.user_management">
+      <el-tab-pane v-if="userInfos.is_admin" name="user" :label="lang.user_management">
         <UserManagement/>
       </el-tab-pane>
-      <el-tab-pane :label="lang.plugin_settings">
+      <el-tab-pane name="plugins" :label="lang.plugin_settings">
         <PluginSettings/>
       </el-tab-pane>
     </el-tabs>
-  </el-drawer>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -51,6 +58,7 @@ import {useGlobalStatusStore} from "@/stores/useGlobalStatusStore";
 
 const globalStatus = useGlobalStatusStore();
 const userInfos = globalStatus.userInfos;
+const activeTab = ref('security')
 
 const isMobile = ref(window.innerWidth <= 768);
 
@@ -134,6 +142,25 @@ onUnmounted(() => {
 
 .settings-tabs {
   height: 100%;
+}
+
+:global(.settings-dialog .el-dialog__body) {
+  padding-top: 4px;
+}
+
+:global(.settings-dialog .settings-tabs) {
+  height: min(76vh, 780px);
+}
+
+:global(.settings-dialog .settings-tabs .el-tabs__content) {
+  height: 100%;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  :global(.settings-dialog .settings-tabs) {
+    height: min(78vh, 640px);
+  }
 }
 
 @media (max-width: 768px) {

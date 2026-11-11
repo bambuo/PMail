@@ -27,6 +27,12 @@ func BindDependencies() {
 	app.AllHooks = infra.PluginAllHooks
 	app.HookNames = infra.PluginHookNames
 	app.GetHook = infra.PluginGetHook
+	app.PluginList = infra.PluginManageList
+	app.PluginApprove = infra.PluginManageApprove
+	app.PluginEnable = infra.PluginManageEnable
+	app.PluginDisable = infra.PluginManageDisable
+	app.PluginReject = infra.PluginManageReject
+	app.PluginReload = infra.PluginManageReload
 	app.GetCertificateType = infra.CertificateGetSSL
 	app.SetCertificate = infra.CertificateSetSSL
 	app.GenerateCertificate = infra.CertificateGenSSL

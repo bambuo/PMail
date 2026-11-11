@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/Jinnrry/pmail/dto/plugin"
 	"github.com/Jinnrry/pmail/hooks/framework"
 	pcontext "github.com/Jinnrry/pmail/pkg/context"
 )
@@ -39,3 +40,11 @@ type DNSChallengeRecord struct {
 var GetDNSChallengeRecords func(*pcontext.Context) []*DNSChallengeRecord
 
 var RemoveGroups func(*pcontext.Context, []int) (bool, error)
+
+// WASM 插件管理端口，由 bootstrap 绑定到 infra 实现。
+var PluginList func() []plugin.Info
+var PluginApprove func(ctx *pcontext.Context, id string, hooks, capabilities []string) error
+var PluginEnable func(ctx *pcontext.Context, id string) error
+var PluginDisable func(ctx *pcontext.Context, id string) error
+var PluginReject func(ctx *pcontext.Context, id string) error
+var PluginReload func(ctx *pcontext.Context, id string) error

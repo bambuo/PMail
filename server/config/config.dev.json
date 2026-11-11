@@ -19,6 +19,7 @@
   "tgBotToken": "",
   "webPushUrl": "",
   "webPushToken": "",
+  "pluginWasmEnabled": 0,
   "isInit": false,
   "httpsEnabled": 2
 }
