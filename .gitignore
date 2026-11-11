@@ -7,3 +7,6 @@ server/plugins
 config
 *_KEY
 AURORA_SECRET
+
+# Mimosa 安全扫描插件工作目录
+.mimosa/

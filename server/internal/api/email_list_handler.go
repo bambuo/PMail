@@ -18,6 +18,7 @@ import (
 type emailHTTPEmailListResponse struct {
 	CurrentPage int                  `json:"current_page"`
 	TotalPage   int                  `json:"total_page"`
+	Total       int64                `json:"total"`
 	List        []*emailHTTPEmilItem `json:"list"`
 }
 
@@ -104,6 +105,7 @@ func EmailHTTPEmailList(ctx *context.Context, w http.ResponseWriter, req *http.R
 	ret := emailHTTPEmailListResponse{
 		CurrentPage: retData.CurrentPage,
 		TotalPage:   cast.ToInt(math.Ceil(cast.ToFloat64(total) / cast.ToFloat64(retData.PageSize))),
+		Total:       total,
 		List:        lst,
 	}
 	response.NewSuccessResponse(ret).FPrint(w)

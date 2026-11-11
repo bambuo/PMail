@@ -65,20 +65,18 @@ func (s *SMTPSession) AuthPlain(username, pwd string) error {
 
 	var user models.User
 
-	encodePwd := password.Encode(pwd)
-
 	infos := strings.Split(username, "@")
 	if len(infos) > 1 {
 		username = infos[0]
 	}
 
-	_, err := app.Persistence.FindLoginAccount(username, encodePwd, &user)
+	_, err := app.Persistence.FindTokenAccount(username, &user)
 
 	if err != nil && err != sql.ErrNoRows {
 		log.Errorf("%+v", err)
 	}
 
-	if user.ID > 0 {
+	if user.ID > 0 && password.Verify(user.Password, pwd) {
 		s.Ctx.UserAccount = user.Account
 		s.Ctx.UserID = user.ID
 		s.Ctx.UserName = user.Name

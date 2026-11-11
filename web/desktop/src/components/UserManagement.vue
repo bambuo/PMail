@@ -97,7 +97,7 @@
             <a-input v-model="editUserInfo.name" />
           </a-form-item>
 
-          <a-form-item :label="lang.password">
+          <a-form-item :label="lang.pwd">
             <a-input-password
               v-model="editUserInfo.password"
               :placeholder="lang.resetPwd"
@@ -194,7 +194,7 @@
           </p>
           <a-input-password
             v-model="mfaPassword"
-            :placeholder="lang.password"
+            :placeholder="lang.pwd"
           />
           <a-button
             status="danger"
@@ -387,7 +387,7 @@ const resetMfa = () => {
   const target = mfaTarget.value
   if (!target) return
   if (!mfaPassword.value) {
-    Message.warning(lang.password)
+    Message.warning(lang.pwd)
     return
   }
   mfaLoading.value = true

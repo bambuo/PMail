@@ -2,9 +2,10 @@
   <div class="login-wrapper">
     <div class="login-container">
       <div class="login-left">
-        <div class="brand-info">
-          <h1>PMail</h1>
-        </div>
+        <h1 class="sr-only">
+          eMail
+        </h1>
+        <LoginHero />
       </div>
       <div class="login-right">
         <div class="login-form-box">
@@ -27,10 +28,10 @@
                 size="large"
               />
             </a-form-item>
-            <a-form-item :label="lang.password">
+            <a-form-item :label="lang.pwd">
               <a-input-password
                 v-model="form.password"
-                :placeholder="lang.password"
+                :placeholder="lang.pwd"
                 size="large"
               />
             </a-form-item>
@@ -103,6 +104,7 @@ import { router } from '@/router'
 import lang from '@/i18n/i18n'
 import { http } from '@/utils/axios'
 import { useGlobalStatusStore } from '@/stores/useGlobalStatusStore'
+import LoginHero from '@/components/LoginHero.vue'
 import type { LoginResult, UserInfo } from '@/types/api'
 
 const globalStatus = useGlobalStatusStore()
@@ -215,20 +217,22 @@ const resetMfa = () => {
 
 .login-left {
   flex: 1;
-  background: linear-gradient(145deg, #0f6ddf 0%, #3f8ef7 55%, #9ec9ff 100%);
-  padding: 72px 64px;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg, #0b1330 0%, #0f1d42 55%, #152a55 100%);
 }
 
-.brand-info h1 {
-  font-size: 56px;
-  font-weight: 600;
-  margin-bottom: 14px;
-  letter-spacing: -0.03em;
-  animation: pm-rise-in 0.58s var(--pm-ease-out);
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .login-right {
@@ -283,7 +287,7 @@ const resetMfa = () => {
   letter-spacing: 0.02em;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 960px) {
   .login-container {
     flex-direction: column;
     height: auto;
@@ -291,12 +295,8 @@ const resetMfa = () => {
     border-radius: var(--pm-radius-lg);
   }
   .login-left {
-    padding: 38px 28px;
-    align-items: center;
-    text-align: center;
-  }
-  .brand-info h1 {
-    font-size: 38px;
+    flex: none;
+    aspect-ratio: 560 / 663;
   }
   .login-right {
     padding: 36px 20px;

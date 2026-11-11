@@ -6,7 +6,7 @@
         class="brand-link"
       >
         <span class="brand-dot" />
-        <span class="brand-text">PMail</span>
+        <span class="brand-text">eMail</span>
       </router-link>
     </div>
     <div class="search-box">
@@ -40,6 +40,25 @@
       v-if="isLogin"
       class="sidebar-footer"
     >
+      <div class="footer-actions">
+        <button
+          class="footer-btn"
+          type="button"
+          @click="toggleTheme"
+        >
+          <IconSun v-if="currentTheme === 'dark'" />
+          <IconMoon v-else />
+          <span>{{ currentTheme === 'dark' ? lang.theme_light : lang.theme_dark }}</span>
+        </button>
+        <button
+          class="footer-btn"
+          type="button"
+          @click="onChangeLang"
+        >
+          <IconLanguage />
+          <span>{{ isZh ? 'English' : '中文' }}</span>
+        </button>
+      </div>
       <div
         class="settings-btn"
         @click="openSettings"
@@ -54,10 +73,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { IconSearch, IconSettings } from '@arco-design/web-vue/es/icon'
+import { IconLanguage, IconMoon, IconSearch, IconSettings, IconSun } from '@arco-design/web-vue/es/icon'
 import useGroupStore from '@/stores/group'
-import lang from '@/i18n/i18n'
+import lang, { getCurrentLang, switchLang } from '@/i18n/i18n'
 import { http } from '@/utils/axios'
+import { getStoredTheme, setTheme, type ArcoTheme } from '@/utils/theme'
 import { useGlobalStatusStore } from '@/stores/useGlobalStatusStore'
 
 interface GroupNode {
@@ -113,6 +133,21 @@ const openSettings = () => {
     globalStatus.settingsDrawerVisible = true
   }
 }
+
+const currentTheme = ref<ArcoTheme>(
+  getStoredTheme() ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+)
+const isZh = getCurrentLang() === 'zh'
+
+const toggleTheme = () => {
+  const next: ArcoTheme = currentTheme.value === 'dark' ? 'light' : 'dark'
+  setTheme(next)
+  currentTheme.value = next
+}
+
+const onChangeLang = () => {
+  switchLang(isZh ? 'en' : 'zh')
+}
 </script>
 
 <style scoped>
@@ -154,6 +189,26 @@ const openSettings = () => {
   padding: 12px 18px 16px;
 }
 
+/* 搜索框：与菜单胶囊一致的圆角 + 玻璃质感 */
+.custom-search {
+  background-color: var(--pm-surface-glass-soft);
+  border: 1px solid var(--pm-border-color);
+  border-radius: 999px;
+  overflow: hidden;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.custom-search:hover {
+  background-color: var(--pm-bg-hover);
+}
+
+.custom-search.arco-input-focus {
+  background-color: var(--pm-bg-hover);
+  border-color: rgba(0, 113, 227, 0.45);
+}
+
 .menu-container {
   flex-grow: 1;
   overflow-y: auto;
@@ -170,6 +225,21 @@ const openSettings = () => {
   border-radius: 999px;
   margin-bottom: 4px;
   font-weight: 500;
+  background-color: transparent;
+  color: var(--pm-text-secondary);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.sidebar-menu :deep(.arco-menu-item:hover) {
+  background-color: var(--pm-bg-hover);
+  color: var(--pm-text-primary);
+}
+
+.sidebar-menu :deep(.arco-menu-item.arco-menu-selected) {
+  background-color: rgba(0, 113, 227, 0.12);
+  color: var(--pm-primary-color);
 }
 
 .menu-label {
@@ -180,6 +250,40 @@ const openSettings = () => {
   margin-top: auto;
   padding: 14px 16px 18px;
   border-top: 1px solid var(--pm-border-color);
+}
+
+.footer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.footer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 6px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--pm-text-secondary);
+  border-radius: 14px;
+  background: var(--pm-surface-glass);
+  border: 1px solid var(--pm-border-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.footer-btn :deep(.arco-icon) {
+  font-size: 16px;
+}
+
+.footer-btn:hover {
+  background-color: var(--pm-bg-hover);
+  color: var(--pm-text-primary);
+  transform: translateY(-1px);
 }
 
 .settings-btn {

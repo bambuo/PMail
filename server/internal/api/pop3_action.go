@@ -104,14 +104,12 @@ func (a pop3Action) Pass(session *gopop.Session, pwd string) error {
 
 	var user models.User
 
-	encodePwd := password.Encode(pwd)
-
-	_, err := app.Persistence.FindIMAPAccount(session.User, encodePwd, &user)
+	_, err := app.Persistence.FindTokenAccount(session.User, &user)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.WithContext(session.Ctx.(*context.Context)).Errorf("%+v", err)
 	}
 
-	if user.ID > 0 {
+	if user.ID > 0 && password.Verify(user.Password, pwd) {
 		session.Status = gopop.TRANSACTION
 
 		session.Ctx.(*context.Context).UserID = user.ID

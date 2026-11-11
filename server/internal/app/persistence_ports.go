@@ -70,7 +70,6 @@ type PersistencePort interface {
 	RecordOutgoingFailure(p0 *context.Context, p1 string, p2 int) (sql.Result, error)
 	InsertFailedEmailOwner(p0 *models.UserEmail) (int64, error)
 	RecordOutgoingSuccess(p0 *context.Context, p1 int) (sql.Result, error)
-	FindLoginAccount(p0 string, p1 string, p2 *models.User) (bool, error)
 	UpdateUserRule(p0 *context.Context, p1 string, p2 string, p3 int, p4 string, p5 int, p6 int, p7 int) (sql.Result, error)
 	InsertUserRule(p0 *context.Context, p1 string, p2 string, p3 int, p4 int, p5 string, p6 int) (sql.Result, error)
 	DeleteUserRule(p0 *context.Context, p1 int, p2 int) (sql.Result, error)
@@ -81,7 +80,6 @@ type PersistencePort interface {
 	FindAccountByName(p0 string, p1 *models.User) (bool, error)
 	UpdateAccount(p0 int, p1 *models.User) (int64, error)
 	FindGroupsByPathPattern(p0 int, p1 string, p2 *[]*models.Group) error
-	FindIMAPAccount(p0 string, p1 string, p2 *models.User) (bool, error)
 	FindRecentUserEmails(p0 int, p1 time.Time, p2 *[]models.UserEmail) error
 	FindAPOPAccount(p0 string, p1 *models.User) (bool, error)
 	FindAdministrators(p0 *[]*models.User) error

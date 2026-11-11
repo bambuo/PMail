@@ -22,3 +22,69 @@
   padding: 0 !important;
   background: transparent;
 }
+
+/*
+ * Arco 调色板对齐应用主色调：
+ * 中性面板/灰阶换为蓝灰系（派生自 --pm-bg-*），主色换为 --pm-primary-color，
+ * 避免 Arco 默认暖灰与靛蓝和全局玻璃风格脱节。
+ * 本文件在 arco.css 之后导入，同特异性下按文档顺序覆盖生效。
+ */
+body {
+  --primary-5: 94, 166, 243;
+  --primary-6: 0, 113, 227;
+  --primary-7: 0, 102, 204;
+  --color-bg-1: #ffffff;
+  --color-bg-2: #ffffff;
+  --color-bg-3: #f0f2f6;
+  --color-bg-4: #e8ebf0;
+  --color-bg-5: #dfe3ea;
+  --color-neutral-1: rgb(245, 245, 247);
+  --color-neutral-2: rgb(240, 242, 246);
+  --color-neutral-3: rgb(229, 233, 240);
+  --color-neutral-4: rgb(214, 220, 231);
+  --color-neutral-5: rgb(193, 202, 217);
+  --color-neutral-6: rgb(167, 178, 197);
+  --gray-1: 249, 250, 252;
+  --gray-2: 243, 245, 249;
+  --gray-3: 234, 238, 245;
+  --gray-4: 223, 228, 238;
+  --gray-5: 186, 194, 209;
+  --gray-6: 155, 164, 181;
+  --gray-7: 122, 132, 150;
+  --gray-8: 95, 105, 122;
+  --gray-9: 66, 76, 92;
+  --gray-10: 29, 33, 41;
+  /* 圆角 token 对齐应用圆润风格（按钮/输入框/下拉等 Arco 组件全局生效） */
+  --border-radius-small: 8px;
+  --border-radius-medium: 12px;
+  --border-radius-large: 16px;
+}
+
+/* 复选框本体较小，沿用全局 8px 会近似圆形、与单选混淆，收回一档 */
+.arco-checkbox-icon {
+  border-radius: 4px;
+}
+
+body[arco-theme='dark'] {
+  --color-bg-1: #171b22;
+  --color-bg-2: #1b1f26;
+  --color-bg-3: #222833;
+  --color-bg-4: #2b3341;
+  --color-bg-5: #323b4b;
+  --color-neutral-1: rgb(27, 31, 38);
+  --color-neutral-2: rgb(36, 42, 52);
+  --color-neutral-3: rgb(43, 51, 65);
+  --color-neutral-4: rgb(56, 66, 84);
+  --color-neutral-5: rgb(72, 84, 105);
+  --color-neutral-6: rgb(91, 105, 128);
+  --gray-1: 23, 27, 34;
+  --gray-2: 27, 31, 38;
+  --gray-3: 34, 40, 51;
+  --gray-4: 36, 42, 52;
+  --gray-5: 134, 146, 163;
+  --gray-6: 150, 161, 178;
+  --gray-7: 182, 190, 202;
+  --gray-8: 214, 220, 231;
+  --gray-9: 235, 238, 243;
+  --gray-10: 245, 247, 250;
+}

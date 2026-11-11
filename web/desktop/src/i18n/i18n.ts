@@ -16,7 +16,7 @@ let lang: LangMap = {
     "compose": "compose",
     "new": "new",
     "account": "Account",
-    "password": "Password",
+    "pwd": "Password",
     "login": "login",
     "search": "Search Email",
     "inbox": "Inbox",
@@ -53,15 +53,15 @@ let lang: LangMap = {
     "setSSL": "Set SSL",
     "dns_root_desc": "Fill in the \"@\" or empty, as determined by your domain name service provider.",
     "setDatabase": "Set Database",
-    "setAdminPassword": "Set Password",
+    "setAdminPwd": "Set Password",
     "admin_account": "Administrator Account",
     "setOther": "Other",
     "welcome": "Welcome",
     "next": "Next",
-    "tks_pmail": "Thanks for using Pmail",
+    "tks_pmail": "Thanks for using eMail",
     "guid_desc": "Next, you will be guided to perform initial configuration. If you have already configured, please use your configuration file to overwrite the config folder of the running directory. If you have not configured it, please follow this guide.",
     "select_db": "select database",
-    "db_desc": "PMail currently supports MySQL and SQLite3 databases, you can choose according to your needs.",
+    "db_desc": "eMail currently supports MySQL and SQLite3 databases, you can choose according to your needs.",
     "type": "Type",
     "db_select_ph": "please select your database",
     "mysql_dsn": "MySQL DSN",
@@ -79,7 +79,7 @@ let lang: LangMap = {
     "ssl_challenge_type": "Challenge Type",
     "ssl_auto_http": "Http Request",
     "ssl_auto_dns": "DNS Records",
-    "challenge_typ_desc": "If PMail uses port 80 directly, it is recommended that you use the HTTP challenge method.",
+    "challenge_typ_desc": "If eMail uses port 80 directly, it is recommended that you use the HTTP challenge method.",
     "oomain_service_provider": "Domain Name Service Provider",
     "ssl_manuallyf": "Manually configure an SSL certificate",
     "ssl_key_path": "ssl key file path",
@@ -116,7 +116,7 @@ let lang: LangMap = {
     "move": "Move to group",
     "del_rule_confirm": "Are you sure to delete this?",
     "rule_params": "Executed params",
-    "autoSSLWarn": "PMail is not currently running on port 80. If you want PMail to manage SSL certificates automatically, please forward the /.well-known/* route to PMail. See https://github.com/Jinnrry/PMail/issues/94 for details.",
+    "autoSSLWarn": "eMail is not currently running on port 80. If you want eMail to manage SSL certificates automatically, please forward the /.well-known/* route to eMail. See https://github.com/Jinnrry/PMail/issues/94 for details.",
     "err_db_dsn_empty": "Database path cannot be empty!",
     "modify_pwd_desc": "Update your account password to keep it secure.",
     "enter_new_pwd": "Enter new password",
@@ -204,7 +204,24 @@ let lang: LangMap = {
     "status_error": "Error",
     "login_brand_desc": "Secure, elegant and distraction-free email experience for your team.",
     "login_subtitle": "Enter your credentials to access your mailbox",
-    "login_fill_required": "Please fill in both fields"
+    "login_fill_required": "Please fill in both fields",
+    "login_hero_aria": "eMail security illustration: a shield protecting an envelope, surrounded by badges for TLS encryption, DKIM signing, TOTP two-factor and anti-spam",
+    "login_hero_tagline": "Self-Hosted Mail · Secure & Controllable",
+    "login_hero_status": "Protected",
+    "login_hero_tls": "TLS Encryption",
+    "login_hero_tls_desc": "End-to-end TLS",
+    "login_hero_dkim": "DKIM Signing",
+    "login_hero_dkim_desc": "Anti-spoofing",
+    "login_hero_totp": "TOTP 2FA",
+    "login_hero_totp_desc": "One-time passcodes",
+    "login_hero_spam": "Anti-Spam",
+    "login_hero_spam_desc": "WASM plugin sandbox",
+    "login_hero_slogan": "Business-grade security · Full data control",
+    "theme_dark": "Dark mode",
+    "theme_light": "Light mode",
+    "list_col_status": "Status",
+    "list_col_mail": "Email",
+    "list_col_time": "Time"
 };
 
 
@@ -224,7 +241,7 @@ const zhCN: LangMap = {
     "compose": "发件",
     "new": "新",
     "account": "账号",
-    "password": "密码",
+    "pwd": "密码",
     "login": "登录",
     "search": "搜索邮件",
     "inbox": "收件箱",
@@ -263,15 +280,15 @@ const zhCN: LangMap = {
     "setDNS": "DNS设置",
     "setSSL": "SSL设置",
     "setDatabase": "数据库设置",
-    "setAdminPassword": "密码设置",
+    "setAdminPwd": "密码设置",
     "admin_account": "管理员账号",
     "setOther": "其他设置",
     "welcome": "欢迎",
     "next": "下一步",
-    "tks_pmail": "感谢使用PMail",
+    "tks_pmail": "感谢使用eMail",
     "guid_desc": "接下来将会指引你进行初始化配置，如果你已有配置，请使用你的配置文件覆盖运行目录的config文件夹。如果你没有配置过，请按照该指引操作。",
     "select_db": "数据库选择",
-    "db_desc": "PMail目前支持MySQL和SQLite3两种数据库，你可根据需要选择。",
+    "db_desc": "eMail目前支持MySQL和SQLite3两种数据库，你可根据需要选择。",
     "type": "类型",
     "db_select_ph": "请选择你的数据库",
     "mysql_dsn": "MySQL DSN",
@@ -287,7 +304,7 @@ const zhCN: LangMap = {
     "ssl_auto_dns": "DNS记录",
     "ssl_challenge_type": "验证方式",
     "ssl_manuallyf": "手动配置SSL证书",
-    "challenge_typ_desc": "如果PMail直接使用80端口，建议使用HTTP验证方式。",
+    "challenge_typ_desc": "如果eMail直接使用80端口，建议使用HTTP验证方式。",
     "wait_desc": "请稍等",
     "dns_challenge_wait": "DNS传播和缓存刷新时间较长，此处可能等待10-30分钟",
     "ssl_key_path": "ssl key文件位置",
@@ -324,7 +341,7 @@ const zhCN: LangMap = {
     "move": "移动分组",
     "del_rule_confirm": "确定要删除吗？",
     "rule_params": "执行参数",
-    "autoSSLWarn": "PMail当前未使用80端口启动，如果想要PMail自动管理SSL证书，请将/.well-known/*路由转发到PMail。 详见https://github.com/Jinnrry/PMail/issues/94",
+    "autoSSLWarn": "eMail当前未使用80端口启动，如果想要eMail自动管理SSL证书，请将/.well-known/*路由转发到eMail。 详见https://github.com/Jinnrry/PMail/issues/94",
     "err_db_dsn_empty": "数据库路径不能为空!",
     "modify_pwd_desc": "修改您的账户密码以确保安全。",
     "enter_new_pwd": "输入新密码",
@@ -413,12 +430,42 @@ const zhCN: LangMap = {
     "status_error": "错误",
     "login_brand_desc": "为你的团队提供安全、优雅且专注的邮件体验。",
     "login_subtitle": "请输入凭据以访问你的邮箱",
-    "login_fill_required": "请填写账号和密码"
+    "login_fill_required": "请填写账号和密码",
+    "login_hero_aria": "eMail 安全插图：盾牌包裹信封，环绕 TLS 加密、DKIM 签名校验、TOTP 双因素与反垃圾徽标",
+    "login_hero_tagline": "自建域名邮箱 · 安全可控",
+    "login_hero_status": "安全在线",
+    "login_hero_tls": "TLS 加密传输",
+    "login_hero_tls_desc": "全程 SSL/TLS 链路加密",
+    "login_hero_dkim": "DKIM 签名校验",
+    "login_hero_dkim_desc": "防伪造 · 防篡改",
+    "login_hero_totp": "TOTP 双因素",
+    "login_hero_totp_desc": "动态验证码登录",
+    "login_hero_spam": "智能反垃圾",
+    "login_hero_spam_desc": "WASM 插件沙箱",
+    "login_hero_slogan": "商务级安全 · 数据自主可控",
+    "theme_dark": "深色模式",
+    "theme_light": "浅色模式",
+    "list_col_status": "状态",
+    "list_col_mail": "邮件",
+    "list_col_time": "时间"
 }
 
+const storedLang = localStorage.getItem("pmail-lang");
 const browserLang = (navigator.languages && navigator.languages[0]) || navigator.language || "en";
-if (browserLang.toLowerCase().startsWith("zh")) {
+if (storedLang === "zh" || (!storedLang && browserLang.toLowerCase().startsWith("zh"))) {
     lang = zhCN;
+}
+
+export function getCurrentLang(): "en" | "zh" {
+    if (storedLang === "en" || storedLang === "zh") {
+        return storedLang;
+    }
+    return browserLang.toLowerCase().startsWith("zh") ? "zh" : "en";
+}
+
+export function switchLang(target: "en" | "zh"): void {
+    localStorage.setItem("pmail-lang", target);
+    location.reload();
 }
 
 export default lang;

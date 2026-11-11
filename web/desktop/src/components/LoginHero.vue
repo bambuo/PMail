@@ -1,0 +1,763 @@
+<template>
+  <div
+    class="login-hero"
+    role="img"
+    :aria-label="lang.login_hero_aria"
+  >
+    <svg
+      viewBox="0 0 560 663"
+      preserveAspectRatio="xMidYMid slice"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <linearGradient
+          id="plh-bg"
+          x1="0"
+          y1="0"
+          x2="0.7"
+          y2="1"
+        >
+          <stop
+            offset="0"
+            stop-color="#0B1330"
+          />
+          <stop
+            offset="0.5"
+            stop-color="#0F1D42"
+          />
+          <stop
+            offset="1"
+            stop-color="#152A55"
+          />
+        </linearGradient>
+        <radialGradient
+          id="plh-glow-cyan"
+          cx="0.5"
+          cy="0.3"
+          r="0.55"
+        >
+          <stop
+            offset="0"
+            stop-color="#38BDF8"
+            stop-opacity="0.22"
+          />
+          <stop
+            offset="1"
+            stop-color="#38BDF8"
+            stop-opacity="0"
+          />
+        </radialGradient>
+        <radialGradient
+          id="plh-glow-indigo"
+          cx="0.82"
+          cy="0.9"
+          r="0.6"
+        >
+          <stop
+            offset="0"
+            stop-color="#4F46E5"
+            stop-opacity="0.28"
+          />
+          <stop
+            offset="1"
+            stop-color="#4F46E5"
+            stop-opacity="0"
+          />
+        </radialGradient>
+        <radialGradient
+          id="plh-shield-glow"
+          cx="0.5"
+          cy="0.5"
+          r="0.5"
+        >
+          <stop
+            offset="0"
+            stop-color="#22D3EE"
+            stop-opacity="0.32"
+          />
+          <stop
+            offset="0.7"
+            stop-color="#22D3EE"
+            stop-opacity="0.08"
+          />
+          <stop
+            offset="1"
+            stop-color="#22D3EE"
+            stop-opacity="0"
+          />
+        </radialGradient>
+        <linearGradient
+          id="plh-shield"
+          x1="0"
+          y1="0"
+          x2="1"
+          y2="1"
+        >
+          <stop
+            offset="0"
+            stop-color="#67E8F9"
+          />
+          <stop
+            offset="0.5"
+            stop-color="#3B82F6"
+          />
+          <stop
+            offset="1"
+            stop-color="#4F46E5"
+          />
+        </linearGradient>
+        <linearGradient
+          id="plh-envelope"
+          x1="0"
+          y1="0"
+          x2="0"
+          y2="1"
+        >
+          <stop
+            offset="0"
+            stop-color="#FFFFFF"
+          />
+          <stop
+            offset="1"
+            stop-color="#DBEAFE"
+          />
+        </linearGradient>
+        <linearGradient
+          id="plh-glass"
+          x1="0"
+          y1="0"
+          x2="0"
+          y2="1"
+        >
+          <stop
+            offset="0"
+            stop-color="#FFFFFF"
+            stop-opacity="0.16"
+          />
+          <stop
+            offset="1"
+            stop-color="#FFFFFF"
+            stop-opacity="0.05"
+          />
+        </linearGradient>
+        <linearGradient
+          id="plh-bar"
+          x1="0"
+          y1="1"
+          x2="0"
+          y2="0"
+        >
+          <stop
+            offset="0"
+            stop-color="#3B82F6"
+          />
+          <stop
+            offset="1"
+            stop-color="#38BDF8"
+          />
+        </linearGradient>
+        <pattern
+          id="plh-dots"
+          width="26"
+          height="26"
+          patternUnits="userSpaceOnUse"
+        >
+          <circle
+            cx="1.5"
+            cy="1.5"
+            r="1.2"
+            fill="#7DD3FC"
+          />
+        </pattern>
+      </defs>
+
+      <!-- 背景：深蓝渐变 + 光晕 + 点阵 -->
+      <rect
+        width="560"
+        height="663"
+        fill="url(#plh-bg)"
+      />
+      <rect
+        width="560"
+        height="663"
+        fill="url(#plh-glow-cyan)"
+      />
+      <rect
+        width="560"
+        height="663"
+        fill="url(#plh-glow-indigo)"
+      />
+      <rect
+        width="560"
+        height="663"
+        fill="url(#plh-dots)"
+        opacity="0.08"
+      />
+
+      <!-- 电路走线 -->
+      <g
+        fill="none"
+        stroke="#67E8F9"
+        stroke-width="1.2"
+        opacity="0.28"
+      >
+        <path d="M0 118 H84 L112 146 V196" />
+        <path d="M560 96 H486 L458 124 V168" />
+        <path d="M0 330 H56 L78 352 V398" />
+        <path d="M560 402 H512 L488 378" />
+        <path d="M132 663 V606 L158 580" />
+        <path d="M430 663 V622 L404 596" />
+      </g>
+      <g
+        fill="#7DD3FC"
+        opacity="0.6"
+      >
+        <circle
+          cx="112"
+          cy="196"
+          r="2.5"
+        />
+        <circle
+          cx="458"
+          cy="168"
+          r="2.5"
+        />
+        <circle
+          cx="78"
+          cy="398"
+          r="2.5"
+        />
+        <circle
+          cx="488"
+          cy="378"
+          r="2.5"
+        />
+        <circle
+          cx="158"
+          cy="580"
+          r="2.5"
+        />
+        <circle
+          cx="404"
+          cy="596"
+          r="2.5"
+        />
+      </g>
+
+      <!-- 粒子与星光 -->
+      <g fill="#7DD3FC">
+        <circle
+          cx="78"
+          cy="168"
+          r="2"
+          opacity="0.45"
+        />
+        <circle
+          cx="486"
+          cy="132"
+          r="2.5"
+          opacity="0.55"
+        />
+        <circle
+          cx="506"
+          cy="238"
+          r="2"
+          opacity="0.35"
+        />
+        <circle
+          cx="64"
+          cy="392"
+          r="2.5"
+          opacity="0.4"
+        />
+        <circle
+          cx="478"
+          cy="452"
+          r="2"
+          opacity="0.45"
+        />
+        <circle
+          cx="150"
+          cy="532"
+          r="2"
+          opacity="0.3"
+        />
+        <circle
+          cx="412"
+          cy="562"
+          r="2"
+          opacity="0.35"
+        />
+        <circle
+          cx="332"
+          cy="118"
+          r="2"
+          opacity="0.4"
+        />
+      </g>
+      <g
+        stroke="#7DD3FC"
+        stroke-width="2"
+        stroke-linecap="round"
+        opacity="0.7"
+        fill="none"
+      >
+        <path d="M452 112 v16 M444 120 h16" />
+        <path d="M520 312 v12 M514 318 h12" />
+      </g>
+
+      <!-- 轨道环 -->
+      <g fill="none">
+        <circle
+          cx="280"
+          cy="308"
+          r="204"
+          stroke="#60A5FA"
+          stroke-opacity="0.12"
+        />
+        <circle
+          cx="280"
+          cy="308"
+          r="168"
+          stroke="#60A5FA"
+          stroke-opacity="0.2"
+          stroke-dasharray="3 8"
+        />
+      </g>
+      <g
+        fill="#7DD3FC"
+        opacity="0.75"
+      >
+        <circle
+          cx="112"
+          cy="308"
+          r="3.5"
+        />
+        <circle
+          cx="448"
+          cy="308"
+          r="3.5"
+        />
+        <circle
+          cx="280"
+          cy="104"
+          r="3"
+        />
+      </g>
+
+      <!-- 盾牌 + 信封 -->
+      <ellipse
+        cx="280"
+        cy="310"
+        rx="150"
+        ry="150"
+        fill="url(#plh-shield-glow)"
+      />
+      <path
+        d="M280 158 L382 198 V300 C382 372 338 416 280 438 C222 416 178 372 178 300 V198 Z"
+        fill="url(#plh-shield)"
+        stroke="#A5F3FC"
+        stroke-opacity="0.55"
+        stroke-width="2"
+      />
+      <path
+        d="M280 174 L368 208 V300 C368 362 330 402 280 422 C230 402 192 362 192 300 V208 Z"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-opacity="0.22"
+        stroke-width="1.2"
+      />
+      <rect
+        x="224"
+        y="252"
+        width="112"
+        height="80"
+        rx="12"
+        fill="url(#plh-envelope)"
+      />
+      <path
+        d="M229 261 L280 303 L331 261"
+        fill="none"
+        stroke="#3B82F6"
+        stroke-width="5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+      <circle
+        cx="364"
+        cy="416"
+        r="26"
+        fill="#10B981"
+        stroke="#0B1330"
+        stroke-width="5"
+      />
+      <path
+        d="M351.5 416.5 L361 426 L378 406.5"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-width="5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+
+      <!-- 顶部品牌区 -->
+      <rect
+        x="40"
+        y="40"
+        width="40"
+        height="40"
+        rx="12"
+        fill="url(#plh-shield)"
+        stroke="#A5F3FC"
+        stroke-opacity="0.4"
+      />
+      <rect
+        x="49"
+        y="53"
+        width="22"
+        height="15"
+        rx="3"
+        fill="#F8FAFC"
+      />
+      <path
+        d="M50 55 L60 63 L70 55"
+        fill="none"
+        stroke="#3B82F6"
+        stroke-width="2.2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+      <text
+        x="94"
+        y="60"
+        font-size="23"
+        font-weight="600"
+        fill="#F8FAFC"
+        letter-spacing="0.5"
+      >eMail</text>
+      <text
+        x="94"
+        y="80"
+        font-size="11"
+        fill="#8FA3C8"
+        letter-spacing="1"
+      >{{ lang.login_hero_tagline }}</text>
+
+      <!-- 状态徽标 -->
+      <rect
+        x="424"
+        y="46"
+        width="96"
+        height="28"
+        rx="14"
+        fill="#34D399"
+        fill-opacity="0.12"
+        stroke="#34D399"
+        stroke-opacity="0.35"
+      />
+      <circle
+        cx="438"
+        cy="60"
+        r="3.5"
+        fill="#34D399"
+      />
+      <text
+        x="450"
+        y="64"
+        font-size="11"
+        fill="#6EE7B7"
+      >{{ lang.login_hero_status }}</text>
+
+      <!-- 功能卡片：TLS -->
+      <g>
+        <rect
+          x="36"
+          y="108"
+          width="196"
+          height="62"
+          rx="14"
+          fill="url(#plh-glass)"
+          stroke="#FFFFFF"
+          stroke-opacity="0.25"
+        />
+        <rect
+          x="50"
+          y="122"
+          width="34"
+          height="34"
+          rx="9"
+          fill="#38BDF8"
+          fill-opacity="0.16"
+          stroke="#7DD3FC"
+          stroke-opacity="0.4"
+        />
+        <g
+          fill="none"
+          stroke="#7DD3FC"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M60 230 v-5 a7 7 0 0 1 14 0 v5" />
+          <rect
+            x="59.5"
+            y="230"
+            width="15"
+            height="11"
+            rx="2.5"
+          />
+        </g>
+        <circle
+          cx="67"
+          cy="235"
+          r="1.5"
+          fill="#7DD3FC"
+        />
+        <text
+          x="96"
+          y="136"
+          font-size="13"
+          font-weight="500"
+          fill="#F1F5F9"
+        >{{ lang.login_hero_tls }}</text>
+        <text
+          x="96"
+          y="154"
+          font-size="11"
+          fill="#8FA3C8"
+        >{{ lang.login_hero_tls_desc }}</text>
+      </g>
+
+      <!-- 功能卡片：DKIM -->
+      <g>
+        <rect
+          x="328"
+          y="142"
+          width="196"
+          height="62"
+          rx="14"
+          fill="url(#plh-glass)"
+          stroke="#FFFFFF"
+          stroke-opacity="0.25"
+        />
+        <rect
+          x="342"
+          y="156"
+          width="34"
+          height="34"
+          rx="9"
+          fill="#38BDF8"
+          fill-opacity="0.16"
+          stroke="#7DD3FC"
+          stroke-opacity="0.4"
+        />
+        <path
+          d="M359 158 l11 4.5 v8 c0 6.5 -4.5 10.5 -11 12.5 c-6.5 -2 -11 -6 -11 -12.5 v-8 z"
+          fill="none"
+          stroke="#7DD3FC"
+          stroke-width="1.8"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M354.5 171.5 l3.5 3.5 l7.5 -8"
+          fill="none"
+          stroke="#7DD3FC"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <text
+          x="388"
+          y="170"
+          font-size="13"
+          font-weight="500"
+          fill="#F1F5F9"
+        >{{ lang.login_hero_dkim }}</text>
+        <text
+          x="388"
+          y="188"
+          font-size="11"
+          fill="#8FA3C8"
+        >{{ lang.login_hero_dkim_desc }}</text>
+      </g>
+
+      <!-- 功能卡片：TOTP -->
+      <g>
+        <rect
+          x="36"
+          y="430"
+          width="196"
+          height="62"
+          rx="14"
+          fill="url(#plh-glass)"
+          stroke="#FFFFFF"
+          stroke-opacity="0.25"
+        />
+        <rect
+          x="50"
+          y="444"
+          width="34"
+          height="34"
+          rx="9"
+          fill="#38BDF8"
+          fill-opacity="0.16"
+          stroke="#7DD3FC"
+          stroke-opacity="0.4"
+        />
+        <rect
+          x="59.5"
+          y="447"
+          width="15"
+          height="27"
+          rx="3.5"
+          fill="none"
+          stroke="#7DD3FC"
+          stroke-width="1.8"
+        />
+        <circle
+          cx="67"
+          cy="469"
+          r="1.4"
+          fill="#7DD3FC"
+        />
+        <text
+          x="96"
+          y="458"
+          font-size="13"
+          font-weight="500"
+          fill="#F1F5F9"
+        >{{ lang.login_hero_totp }}</text>
+        <text
+          x="96"
+          y="476"
+          font-size="11"
+          fill="#8FA3C8"
+        >{{ lang.login_hero_totp_desc }}</text>
+      </g>
+
+      <!-- 功能卡片：反垃圾 -->
+      <g>
+        <rect
+          x="328"
+          y="486"
+          width="196"
+          height="62"
+          rx="14"
+          fill="url(#plh-glass)"
+          stroke="#FFFFFF"
+          stroke-opacity="0.25"
+        />
+        <rect
+          x="342"
+          y="500"
+          width="34"
+          height="34"
+          rx="9"
+          fill="#38BDF8"
+          fill-opacity="0.16"
+          stroke="#7DD3FC"
+          stroke-opacity="0.4"
+        />
+        <path
+          d="M349 508 H369 L362 516 V524 L356 521 V516 Z"
+          fill="none"
+          stroke="#7DD3FC"
+          stroke-width="1.8"
+          stroke-linejoin="round"
+        />
+        <text
+          x="388"
+          y="514"
+          font-size="13"
+          font-weight="500"
+          fill="#F1F5F9"
+        >{{ lang.login_hero_spam }}</text>
+        <text
+          x="388"
+          y="532"
+          font-size="11"
+          fill="#8FA3C8"
+        >{{ lang.login_hero_spam_desc }}</text>
+      </g>
+
+      <!-- 增长柱线 -->
+      <rect
+        x="238"
+        y="600"
+        width="14"
+        height="16"
+        rx="3"
+        fill="url(#plh-bar)"
+        opacity="0.35"
+      />
+      <rect
+        x="260"
+        y="588"
+        width="14"
+        height="28"
+        rx="3"
+        fill="url(#plh-bar)"
+        opacity="0.45"
+      />
+      <rect
+        x="282"
+        y="576"
+        width="14"
+        height="40"
+        rx="3"
+        fill="url(#plh-bar)"
+        opacity="0.55"
+      />
+      <rect
+        x="304"
+        y="564"
+        width="14"
+        height="52"
+        rx="3"
+        fill="url(#plh-bar)"
+        opacity="0.7"
+      />
+      <path
+        d="M238 594 L260 582 L282 570 L304 558"
+        fill="none"
+        stroke="#7DD3FC"
+        stroke-width="2"
+        stroke-linecap="round"
+        opacity="0.8"
+      />
+      <circle
+        cx="304"
+        cy="558"
+        r="3"
+        fill="#7DD3FC"
+      />
+
+      <text
+        x="280"
+        y="650"
+        font-size="12"
+        fill="#A5B8DC"
+        text-anchor="middle"
+        letter-spacing="1"
+      >{{ lang.login_hero_slogan }}</text>
+    </svg>
+  </div>
+</template>
+
+<script setup lang="ts">
+import lang from '@/i18n/i18n'
+</script>
+
+<style scoped>
+.login-hero {
+  position: absolute;
+  inset: 0;
+}
+
+.login-hero svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  font-family: inherit;
+}
+</style>

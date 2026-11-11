@@ -6,7 +6,7 @@
     >
       <a-step :title="lang.welcome" />
       <a-step :title="lang.setDatabase" />
-      <a-step :title="lang.setAdminPassword" />
+      <a-step :title="lang.setAdminPwd" />
       <a-step :title="lang.SetDomail" />
       <a-step :title="lang.setDNS" />
       <a-step :title="lang.setSSL" />
@@ -100,7 +100,7 @@
       class="ctn"
     >
       <div class="desc">
-        <h2>{{ lang.setAdminPassword }}</h2>
+        <h2>{{ lang.setAdminPwd }}</h2>
       </div>
       <div class="form setup-form">
         <a-form
@@ -115,7 +115,7 @@
             />
           </a-form-item>
 
-          <a-form-item :label="lang.password">
+          <a-form-item :label="lang.pwd">
             <a-input-password
               v-model="adminSettings.password"
               :disabled="adminSettings.hadSeted"

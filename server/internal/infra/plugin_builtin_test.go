@@ -118,7 +118,7 @@ func TestWechatPushWasmPlugin(t *testing.T) {
 		switch r.URL.Path {
 		case "/cgi-bin/token":
 			tokenHits++
-			if r.URL.Query().Get("appid") != "appid" || r.URL.Query().Get("secret") != "secret" {
+			if r.URL.Query().Get("appid") != "wx-test-app-id" || r.URL.Query().Get("secret") != "wx-test-secret" {
 				t.Errorf("unexpected token query: %s", r.URL.RawQuery)
 			}
 			_, _ = w.Write([]byte(`{"access_token":"test-token","expires_in":7200}`))
@@ -146,8 +146,8 @@ func TestWechatPushWasmPlugin(t *testing.T) {
 		"capabilities": []string{"log", "email.read", "http"},
 		"http_allow":   []string{u.Host},
 		"config": map[string]string{
-			"app_id":        "appid",
-			"secret":        "secret",
+			"app_id":        "wx-test-app-id",
+			"secret":        "wx-test-secret",
 			"template_id":   "tpl-1",
 			"user_id":       "wx-user",
 			"web_url":       "https://mail.example.com",

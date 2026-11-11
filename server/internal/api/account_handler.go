@@ -49,7 +49,7 @@ func HTTPCreateUser(ctx *context.Context, w http.ResponseWriter, req *http.Reque
 
 	var user models.User
 	user.Name = reqData.Username
-	user.Password = password.Encode(reqData.Password)
+	user.Password = password.Hash(reqData.Password)
 	user.Account = reqData.Account
 
 	_, err = app.Persistence.InsertAdministrator(&user)
@@ -193,7 +193,7 @@ func HTTPEditUser(ctx *context.Context, w http.ResponseWriter, req *http.Request
 		user.Disabled = reqData.Disabled
 	}
 	if reqData.Password != "" {
-		user.Password = password.Encode(reqData.Password)
+		user.Password = password.Hash(reqData.Password)
 	}
 
 	num, err := app.Persistence.UpdateAccount(user.ID, &user)

@@ -366,7 +366,8 @@ func mfaHashRecoveryCode(code string) string {
 }
 
 func verifyPassword(encoded, plain string) bool {
-	return subtle.ConstantTimeCompare([]byte(encoded), []byte(password.Encode(plain))) == 1
+	// 口令存储已支持 bcrypt，兼容历史双重 MD5 哈希
+	return password.Verify(encoded, plain)
 }
 
 func encryptMfaSecret(secret string) (string, error) {

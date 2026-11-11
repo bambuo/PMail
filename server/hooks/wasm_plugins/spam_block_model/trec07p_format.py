@@ -4,7 +4,18 @@ from email.policy import default
 from bs4 import BeautifulSoup
 
 
-# 该脚本用于整理trec06c数据集，可以生成训练集和测试集数据格式
+# 该脚本用于整理trec07p数据集，可以生成训练集和测试集数据格式
+
+# index 中记录的相对路径均基于该数据集根目录解析，禁止越出根目录
+DATA_ROOT = os.path.abspath("../data")
+
+
+def safePath(path):
+    resolved = os.path.abspath(path)
+    if not resolved.startswith(DATA_ROOT + os.sep):
+        raise ValueError("path outside dataset root: " + path)
+    return resolved
+
 
 def getData(path):
     f = open(path, 'r', errors='ignore')
@@ -42,7 +53,7 @@ with open("index", "r") as f:
                 if not line:
                     break
                 infos = line.split(" ")
-                subject, body = getData(infos[1].strip())
+                subject, body = getData(safePath(infos[1].strip()))
                 if subject == "":
                     continue
                 tp = 0

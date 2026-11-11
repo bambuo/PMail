@@ -75,6 +75,70 @@
   }
 }
 
+/* 手动主题切换（theme.ts 写入 html[data-theme]，优先级高于系统媒体查询） */
+html[data-theme='light'] {
+  color-scheme: light;
+  --pm-bg-primary: #f5f5f7;
+  --pm-bg-secondary: #ffffff;
+  --pm-bg-sidebar: #fbfbfd;
+  --pm-bg-hover: #f0f2f6;
+  --pm-bg-elevated: rgba(255, 255, 255, 0.72);
+  --pm-page-glow: #ffffff;
+  --pm-surface-glass: rgba(255, 255, 255, 0.78);
+  --pm-surface-glass-soft: rgba(255, 255, 255, 0.66);
+  --pm-surface-solid: #ffffff;
+  --pm-surface-muted: rgba(255, 255, 255, 0.88);
+  --pm-glass-border: rgba(255, 255, 255, 0.72);
+  --pm-sidebar-grad-start: #ffffff;
+  --pm-sidebar-grad-end: #f8f9fc;
+  --pm-login-right-grad-start: rgba(255, 255, 255, 0.7);
+  --pm-login-right-grad-end: rgba(249, 250, 255, 0.92);
+  --pm-row-hover: #f5f8ff;
+  --pm-border-subtle: rgba(0, 0, 0, 0.05);
+
+  --pm-text-primary: #1d1d1f;
+  --pm-text-secondary: #4f4f53;
+  --pm-text-muted: #7a7a80;
+
+  --pm-border-color: rgba(0, 0, 0, 0.08);
+  --pm-border-strong: rgba(0, 0, 0, 0.12);
+
+  --pm-shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.04);
+  --pm-shadow-md: 0 12px 36px rgba(0, 0, 0, 0.08);
+  --pm-shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.12);
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --pm-bg-primary: #111317;
+  --pm-bg-secondary: #1b1f26;
+  --pm-bg-sidebar: #171b22;
+  --pm-bg-hover: #242a34;
+  --pm-bg-elevated: rgba(25, 29, 36, 0.74);
+  --pm-page-glow: #1a1e25;
+  --pm-surface-glass: rgba(24, 28, 35, 0.8);
+  --pm-surface-glass-soft: rgba(24, 28, 35, 0.7);
+  --pm-surface-solid: #222833;
+  --pm-surface-muted: rgba(33, 38, 47, 0.92);
+  --pm-glass-border: rgba(255, 255, 255, 0.12);
+  --pm-sidebar-grad-start: #1b2029;
+  --pm-sidebar-grad-end: #161b23;
+  --pm-login-right-grad-start: rgba(24, 28, 35, 0.76);
+  --pm-login-right-grad-end: rgba(19, 23, 30, 0.9);
+  --pm-row-hover: #263041;
+  --pm-border-subtle: rgba(255, 255, 255, 0.1);
+
+  --pm-text-primary: #f5f7fa;
+  --pm-text-secondary: #b6beca;
+  --pm-text-muted: #8692a3;
+  --pm-border-color: rgba(255, 255, 255, 0.14);
+  --pm-border-strong: rgba(255, 255, 255, 0.24);
+
+  --pm-shadow-sm: 0 8px 18px rgba(0, 0, 0, 0.28);
+  --pm-shadow-md: 0 18px 42px rgba(0, 0, 0, 0.36);
+  --pm-shadow-lg: 0 28px 58px rgba(0, 0, 0, 0.44);
+}
+
 *,
 *::before,
 *::after {

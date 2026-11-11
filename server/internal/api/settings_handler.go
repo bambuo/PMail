@@ -28,7 +28,7 @@ func HTTPModifyPassword(ctx *context.Context, w http.ResponseWriter, req *http.R
 	}
 
 	if retData.Password != "" {
-		encodePwd := password.Encode(retData.Password)
+		encodePwd := password.Hash(retData.Password)
 
 		_, err := app.Persistence.SetAccountPassword(ctx.UserID, encodePwd)
 		if err != nil {

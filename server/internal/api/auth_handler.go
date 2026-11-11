@@ -36,13 +36,18 @@ func HTTPLogin(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 
 	var user models.User
 
-	encodePwd := password.Encode(reqData.Password)
-	_, err = app.Persistence.FindLoginAccount(reqData.Account, encodePwd, &user)
+	_, err = app.Persistence.FindTokenAccount(reqData.Account, &user)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Errorf("%+v", err)
 	}
 
-	if user.ID != 0 {
+	if user.ID != 0 && password.Verify(user.Password, reqData.Password) {
+		// 历史双重 MD5 哈希在登录成功后透明升级为 bcrypt
+		if password.NeedsUpgrade(user.Password) {
+			if _, err := app.Persistence.SetAccountPassword(user.ID, password.Hash(reqData.Password)); err != nil {
+				log.WithContext(ctx).Errorf("upgrade password hash failed: %+v", err)
+			}
+		}
 		if app.MFAIsEnabled(&user) {
 			token, err := app.CreateMFAChallenge(user.ID)
 			if err != nil {
@@ -73,6 +78,8 @@ func loginUserResponse(w http.ResponseWriter, user *models.User) {
 		"name":     user.Name,
 		"is_admin": user.IsAdmin,
 		"domains":  domains,
+		// 用于按需铸造 5 秒时效 Token 的口令哈希（md5(api_key+timestamp)），仅返回给完成登录的用户本人
+		"api_key": user.Password,
 	}).FPrint(w)
 }
 

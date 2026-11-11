@@ -85,7 +85,6 @@
         :data="data"
         :columns="columns"
         :pagination="false"
-        :show-header="false"
         :row-selection="{ type: 'checkbox', showCheckedAll: false }"
         row-key="id"
         class="modern-mail-table"
@@ -133,25 +132,33 @@
                 {{ record.desc }}
               </div>
             </div>
-            <div class="mail-meta">
-              <div class="mail-date">
-                {{ formatShortDate(record.datetime) }}
-              </div>
-            </div>
+          </div>
+        </template>
+        <template #time="{ record }">
+          <div
+            class="time-cell"
+            :class="{ 'time-unread': !record.is_read }"
+          >
+            {{ record.datetime }}
           </div>
         </template>
       </a-table>
     </div>
 
     <div
-      v-if="totalPage > 0"
+      v-if="total > 0"
       class="pagination-wrapper"
     >
       <a-pagination
         :current="currentPage"
-        :total="totalPage * 15"
-        :page-size="15"
+        :total="total"
+        :page-size="pageSize"
+        show-total
+        show-jumper
+        show-page-size
+        :page-size-options="[10, 15, 20, 30, 50]"
         @change="pageChange"
+        @page-size-change="pageSizeChange"
       />
     </div>
   </div>
@@ -159,7 +166,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import type { TableData } from '@arco-design/web-vue'
+import type { TableData, TableColumnData } from '@arco-design/web-vue'
 import { useRouter } from 'vue-router'
 import { Message, Modal } from '@arco-design/web-vue'
 import {
@@ -195,6 +202,7 @@ interface EmailRow {
 interface EmailListData {
   list: EmailRow[]
   total_page: number
+  total: number
 }
 
 interface GroupItem {
@@ -206,8 +214,9 @@ const router = useRouter()
 const groupStore = useGroupStore()
 const groupList = ref<GroupItem[]>([])
 const data = ref<EmailRow[]>([])
-const totalPage = ref(0)
+const total = ref(0)
 const currentPage = ref(1)
+const pageSize = ref(15)
 const selectedKeys = ref<Array<string | number>>([])
 
 let tag = groupStore.tag
@@ -215,9 +224,10 @@ if (tag === '') {
   tag = '{"type":0,"status":-1}'
 }
 
-const columns = [
-  { title: '', slotName: 'status', width: 46 },
-  { title: '', slotName: 'mail' }
+const columns: TableColumnData[] = [
+  { title: lang.list_col_status, slotName: 'status', width: 46, align: 'center' },
+  { title: lang.list_col_mail, slotName: 'mail' },
+  { title: lang.list_col_time, slotName: 'time', width: 170, align: 'right' }
 ]
 
 watch(
@@ -230,12 +240,15 @@ watch(
   }
 )
 
-const updateList = (page = 1) => {
+const updateList = (page = 1, size = pageSize.value) => {
   currentPage.value = page
-  http.post<EmailListData>('/api/email/list', { tag, page_size: 15, current_page: page }).then((res) => {
-    data.value = res.data?.list ?? []
-    totalPage.value = res.data?.total_page ?? 0
-  })
+  pageSize.value = size
+  http
+    .post<EmailListData>('/api/email/list', { tag, page_size: size, current_page: page })
+    .then((res) => {
+      data.value = res.data?.list ?? []
+      total.value = res.data?.total ?? 0
+    })
 }
 
 const updateGroupList = () => {
@@ -250,16 +263,6 @@ updateGroupList()
 const rowClick = (record: TableData) => {
   const row = record as unknown as EmailRow
   router.push(`/detail/${row.id}`)
-}
-
-const formatShortDate = (dateStr: string) => {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  const now = new Date()
-  if (d.toDateString() === now.toDateString()) {
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
 const selectAll = () => {
@@ -340,6 +343,10 @@ const del = () => {
 const pageChange = (page: number) => {
   updateList(page)
 }
+
+const pageSizeChange = (size: number) => {
+  updateList(1, size)
+}
 </script>
 
 <style scoped>
@@ -409,6 +416,31 @@ const pageChange = (page: number) => {
   width: 100%;
 }
 
+/* 固定表格布局：列宽不再被 nowrap 长内容撑开，防止横向越界 */
+.modern-mail-table :deep(.arco-table-element) {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.modern-mail-table :deep(.arco-table-th) {
+  padding: 12px 8px;
+  font-weight: 500;
+  color: var(--pm-text-secondary);
+}
+
+.modern-mail-table :deep(.arco-table-th .arco-table-th-title) {
+  white-space: nowrap;
+}
+
+.modern-mail-table :deep(.arco-table-th:nth-child(2)) {
+  padding: 12px 4px;
+  text-align: center;
+}
+
+.modern-mail-table :deep(.arco-table-th:nth-child(3) .arco-table-th-title) {
+  padding-left: 4px;
+}
+
 .modern-mail-table :deep(.arco-table-tr) {
   cursor: pointer;
   transition: all 0.2s var(--pm-ease-out);
@@ -446,6 +478,7 @@ const pageChange = (page: number) => {
   display: flex;
   align-items: center;
   width: 100%;
+  min-width: 0;
   gap: 12px;
 }
 
@@ -478,27 +511,24 @@ const pageChange = (page: number) => {
   color: var(--pm-text-secondary);
 }
 
-.mail-meta {
-  min-width: 80px;
-  text-align: right;
+.time-cell {
   padding-right: 16px;
-}
-
-.mail-date {
+  text-align: right;
   font-size: 12px;
   color: var(--pm-text-secondary);
   font-weight: 500;
+  white-space: nowrap;
+}
+
+.time-unread {
+  color: var(--pm-primary-color);
+  font-weight: 700;
 }
 
 .is-unread .mail-sender,
 .is-unread .mail-subject {
   font-weight: 700;
   color: var(--pm-text-primary);
-}
-
-.is-unread .mail-date {
-  color: var(--pm-primary-color);
-  font-weight: 700;
 }
 
 .pagination-wrapper {
@@ -543,8 +573,9 @@ const pageChange = (page: number) => {
   .mail-row-content {
     align-items: flex-start;
   }
-  .mail-meta {
-    padding-top: 2px;
+  .modern-mail-table :deep(.arco-table-th:last-child),
+  .modern-mail-table :deep(.arco-table-td:last-child) {
+    display: none;
   }
 }
 </style>

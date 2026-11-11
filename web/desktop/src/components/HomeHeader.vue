@@ -9,7 +9,7 @@
       </div>
       <div class="mobile-logo">
         <router-link to="/">
-          <h1>PMail</h1>
+          <h1>eMail</h1>
         </router-link>
       </div>
     </div>
@@ -20,6 +20,7 @@
   <a-modal
     v-model:visible="globalStatus.settingsDrawerVisible"
     :title="lang.settings"
+    title-align="center"
     width="min(1200px, 94vw)"
     top="4vh"
     :footer="false"
@@ -135,8 +136,72 @@ const activeTab = ref('security')
   height: 100%;
 }
 
+/* 弹窗容器：与主界面一致的玻璃拟态卡片（Arco 调色板已全局对齐，见 main.css） */
+:global(.settings-dialog.arco-modal),
+:global(.settings-dialog .arco-modal) {
+  overflow: hidden;
+  background: var(--pm-surface-glass);
+  border: 1px solid var(--pm-glass-border);
+  border-radius: var(--pm-radius-xl);
+  box-shadow: var(--pm-shadow-lg);
+  backdrop-filter: blur(20px);
+}
+
+:global(.settings-dialog .arco-modal-header) {
+  position: relative;
+  height: 52px;
+  padding: 0 16px;
+  background: transparent;
+  border-bottom: 1px solid var(--pm-border-subtle);
+}
+
+/* 标题隐藏：页签已表达语义，仅保留右上角关闭按钮 */
+:global(.settings-dialog .arco-modal-title) {
+  display: none;
+}
+
+:global(.settings-dialog .arco-modal-close-btn) {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  margin: 0;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--pm-radius-sm);
+  color: var(--pm-text-muted);
+  transition: all 0.2s var(--pm-ease-out);
+}
+
+:global(.settings-dialog .arco-modal-close-btn:hover) {
+  background-color: var(--pm-bg-hover);
+  color: var(--pm-text-primary);
+}
+
+:global(.settings-dialog .arco-modal-close-btn:focus-visible) {
+  background-color: var(--pm-bg-hover);
+  color: var(--pm-text-primary);
+}
+
+/* 内层 icon-hover 撑满按钮并停用自带高亮，避免双层背景错位 */
+:global(.settings-dialog .arco-modal-close-btn .arco-icon-hover) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+:global(.settings-dialog .arco-modal-close-btn .arco-icon-hover::before) {
+  display: none;
+}
+
 :global(.settings-dialog .arco-modal-body) {
-  padding-top: 4px;
+  padding: 4px 24px 24px;
 }
 
 :global(.settings-dialog .settings-tabs) {
@@ -147,6 +212,23 @@ const activeTab = ref('security')
 
 :global(.settings-dialog .settings-tabs .arco-tabs-nav) {
   flex: none;
+}
+
+:global(.settings-dialog .settings-tabs .arco-tabs-nav::before) {
+  border-bottom-color: var(--pm-border-subtle);
+}
+
+:global(.settings-dialog .settings-tabs .arco-tabs-tab) {
+  color: var(--pm-text-secondary);
+  font-weight: 500;
+}
+
+:global(.settings-dialog .settings-tabs .arco-tabs-tab:hover) {
+  color: var(--pm-text-primary);
+}
+
+:global(.settings-dialog .settings-tabs .arco-tabs-tab-active) {
+  color: var(--pm-primary-color);
 }
 
 :global(.settings-dialog .settings-tabs .arco-tabs-content) {

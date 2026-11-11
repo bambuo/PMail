@@ -20,15 +20,13 @@ func (s *imapServerSession) Login(username, pwd string) error {
 
 	var user models.User
 
-	encodePwd := password.Encode(pwd)
-
-	_, err := app.Persistence.FindIMAPAccount(username, encodePwd, &user)
+	_, err := app.Persistence.FindTokenAccount(username, &user)
 
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.WithContext(s.ctx).Errorf("%+v", err)
 	}
 
-	if user.ID > 0 {
+	if user.ID > 0 && password.Verify(user.Password, pwd) {
 		s.status = IMAPAUTHORIZED
 
 		s.ctx.UserID = user.ID

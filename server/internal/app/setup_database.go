@@ -39,7 +39,7 @@ func SetupGetAdminPassword(ctx *context.Context) (string, error) {
 }
 
 func SetupSetAdminPassword(ctx *context.Context, account, pwd string) error {
-	encodePwd := password.Encode(pwd)
+	encodePwd := password.Hash(pwd)
 	var user models.User = models.User{
 		Account:  account,
 		Name:     "admin",

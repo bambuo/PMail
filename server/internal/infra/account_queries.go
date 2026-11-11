@@ -11,9 +11,6 @@ func (PersistenceRepository) ListSetupAccounts(p0 *[]*models.User) error {
 func (PersistenceRepository) InsertAdministrator(p0 *models.User) (int64, error) {
 	return Database.Insert(p0)
 }
-func (PersistenceRepository) FindLoginAccount(p0 string, p1 string, p2 *models.User) (bool, error) {
-	return Database.Where("account =? and password =? and disabled=0", p0, p1).Get(p2)
-}
 func (PersistenceRepository) FindTokenAccount(p0 string, p1 *models.User) (bool, error) {
 	return Database.Table("user").Where("account =? and disabled=0", p0).Get(p1)
 }
@@ -32,9 +29,6 @@ func (PersistenceRepository) FindAccountByName(p0 string, p1 *models.User) (bool
 }
 func (PersistenceRepository) UpdateAccount(p0 int, p1 *models.User) (int64, error) {
 	return Database.ID(p0).Cols("name", "password", "disabled").Update(p1)
-}
-func (PersistenceRepository) FindIMAPAccount(p0 string, p1 string, p2 *models.User) (bool, error) {
-	return Database.Where("account =? and password =? and disabled = 0", p0, p1).Get(p2)
 }
 func (PersistenceRepository) FindAPOPAccount(p0 string, p1 *models.User) (bool, error) {
 	return Database.Where("account =? and disabled = 0", p0).Get(p1)

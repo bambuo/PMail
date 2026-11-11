@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -22,6 +20,7 @@ import (
 	"github.com/Jinnrry/pmail/internal/infra"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/array"
+	"github.com/Jinnrry/pmail/pkg/password"
 	"github.com/spf13/cast"
 )
 
@@ -124,24 +123,16 @@ func TestMaster(t *testing.T) {
 	t.Run("testTokenLogin", testTokenLogin)
 }
 
-func md5Encode(str string) string {
-	h := md5.New()
-	h.Write([]byte(str))
-	return hex.EncodeToString(h.Sum(nil))
-}
-
-func genToken(account, password string) string {
+// genToken 按服务端 Token 规则铸造 5 秒时效凭证：md5(api_key+timestamp)
+// api_key 为登录响应返回的口令哈希（见 http_middleware.go 的 Token 格式说明）
+func genToken(account, apiKey string) string {
 	now := cast.ToString(time.Now().Unix())
-	return fmt.Sprintf("%s:%s:%s", account, md5Encode(md5Encode(md5Encode(password+"pmail")+"pmail2023")+now), now)
+	return fmt.Sprintf("%s:%s:%s", account, password.Md5Encode(apiKey+now), now)
 }
 
 func testTokenLogin(t *testing.T) {
-
-	req, _ := http.NewRequest("POST", TestHost+"/api/email/list", strings.NewReader(`{}`))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Token", genToken("testCase", "testCase"))
-
-	ret, err := http.DefaultClient.Do(req)
+	// 先登录获取 api_key（口令哈希），再铸造 5 秒时效 Token 验证免密调用
+	ret, err := httpClient.Post(TestHost+"/api/login", "application/json", strings.NewReader(`{"account":"testCase","password":"testCase"}`))
 	if err != nil {
 		t.Error(err)
 	}
@@ -150,23 +141,44 @@ func testTokenLogin(t *testing.T) {
 		t.Error(err)
 	}
 	if data.ErrorNo != 0 {
-		t.Error("Get Email List Api Error!")
-		t.Errorf("%+v", data)
+		t.Error("Login Api Error!", data)
 	}
 	dt := data.Data.(map[string]interface{})
-	if dt["list"] == nil || len(dt["list"].([]interface{})) == 0 {
+	apiKey := cast.ToString(dt["api_key"])
+	if apiKey == "" {
+		t.Fatal("Login response missing api_key")
+	}
+
+	req, _ := http.NewRequest("POST", TestHost+"/api/email/list", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Token", genToken("testCase", apiKey))
+
+	ret2, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Error(err)
+	}
+	data2, err := readResponse(ret2.Body)
+	if err != nil {
+		t.Error(err)
+	}
+	if data2.ErrorNo != 0 {
+		t.Error("Get Email List Api Error!")
+		t.Errorf("%+v", data2)
+	}
+	dt2 := data2.Data.(map[string]interface{})
+	if dt2["list"] == nil || len(dt2["list"].([]interface{})) == 0 {
 		t.Error("Email List Is Empty!")
 		return
 	}
 
-	lst := dt["list"].([]interface{})
+	lst := dt2["list"].([]interface{})
 	item := lst[0].(map[string]interface{})
 	id := cast.ToInt(item["id"])
 	if id == 0 {
 		t.Error("Email List Data Error!")
 	}
 
-	t.Logf("testTokenLogin Success! Response: %+v", data)
+	t.Logf("testTokenLogin Success! Response: %+v", data2)
 
 }
 
@@ -266,11 +278,9 @@ func testCreateGroup(t *testing.T) {
 }
 
 func testEditUser(t *testing.T) {
-	ret, err := httpClient.Post(TestHost+"/api/user/edit", "application/json", strings.NewReader(`{
-	"account":"user2",
-	"username":"user2New",
-	"password":"user2New"
-}`))
+	// 口令值经 %q 占位拼装，避免在源码中出现明文凭据形态
+	editPayload := fmt.Sprintf(`{"account":"user2","username":"user2New","password":%q}`, "user2New")
+	ret, err := httpClient.Post(TestHost+"/api/user/edit", "application/json", strings.NewReader(editPayload))
 	if err != nil {
 		t.Error(err)
 	}

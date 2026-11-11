@@ -89,7 +89,7 @@ func imapSeedIMAPTestData() {
 		panic(err)
 	}
 	if user.ID == 0 {
-		user = models.User{Account: "testCase", Name: "testCase", Password: password.Encode("testCase")}
+		user = models.User{Account: "testCase", Name: "testCase", Password: password.Hash("testCase")}
 		if _, err = infra.Database.Insert(&user); err != nil {
 			panic(err)
 		}

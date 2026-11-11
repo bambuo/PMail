@@ -29,7 +29,7 @@ func TestMFAFlow(t *testing.T) {
 	if err := InitDatabase("test"); err != nil {
 		t.Fatal(err)
 	}
-	user := &models.User{Account: "mfa-test", Name: "MFA Test", Password: password.Encode("secret")}
+	user := &models.User{Account: "mfa-test", Name: "MFA Test", Password: password.Hash("secret")}
 	if _, err := Database.Insert(user); err != nil {
 		t.Fatal(err)
 	}
@@ -93,8 +93,8 @@ func TestMFAAdminManagesAnotherUser(t *testing.T) {
 	if err := InitDatabase("test"); err != nil {
 		t.Fatal(err)
 	}
-	admin := &models.User{Account: "mfa-admin", Name: "Admin", Password: password.Encode("admin-secret"), IsAdmin: 1}
-	regular := &models.User{Account: "mfa-regular", Name: "Regular", Password: password.Encode("user-secret")}
+	admin := &models.User{Account: "mfa-admin", Name: "Admin", Password: password.Hash("admin-secret"), IsAdmin: 1}
+	regular := &models.User{Account: "mfa-regular", Name: "Regular", Password: password.Hash("user-secret")}
 	if _, err := Database.Insert(admin); err != nil {
 		t.Fatal(err)
 	}
