@@ -584,7 +584,7 @@ func hooksToMap(list []string) map[string]bool {
 
 func capsToMap(list []string) map[string]bool { return hooksToMap(list) }
 
-// PluginWasmInit 在配置开启时初始化 WASM 插件管理器，必须在 PluginInit 之后调用。
+// PluginWasmInit 在配置开启时初始化 WASM 插件管理器。
 func PluginWasmInit(serverVersion string) {
 	if config.Instance == nil || config.Instance.PluginWasmEnabled != 1 {
 		return

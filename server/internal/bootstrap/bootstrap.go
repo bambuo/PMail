@@ -42,7 +42,6 @@ func Run(serverVersion string) {
 		}
 		infra.SessionInit()
 		app.Sessions = infra.SessionInstance
-		infra.PluginInit(serverVersion)
 		infra.PluginWasmInit(serverVersion)
 		// smtp server start
 		go api.StartSMTP()
@@ -76,7 +75,6 @@ func Run(serverVersion string) {
 			api.StopPOP3()
 			api.StopIMAP()
 			infra.PluginWasmStop()
-			infra.PluginStop()
 		case <-app.LifecycleStopChan:
 			log.Infof("Server Stop!")
 			api.StopSMTP()
@@ -85,7 +83,6 @@ func Run(serverVersion string) {
 			api.StopPOP3()
 			api.StopIMAP()
 			infra.PluginWasmStop()
-			infra.PluginStop()
 			return
 		}
 		log.Infof("Server Stop Success!")

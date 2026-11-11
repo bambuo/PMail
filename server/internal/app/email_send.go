@@ -10,7 +10,7 @@ import (
 	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/dto/parsemail"
 	"github.com/Jinnrry/pmail/dto/response"
-	"github.com/Jinnrry/pmail/hooks/framework"
+	"github.com/Jinnrry/pmail/hooks/contract"
 	"github.com/Jinnrry/pmail/internal/domain"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/array"
@@ -191,7 +191,7 @@ func SubmitEmail(ctx *context.Context, reqData SendEmailInput) error {
 				continue
 			}
 			as2.WaitProcess(func(hk any) {
-				hk.(framework.EmailHook).SendAfter(ctx, e, sendErr)
+				hk.(contract.EmailHook).SendAfter(ctx, e, sendErr)
 			}, hook)
 		}
 		as2.Wait()

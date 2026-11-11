@@ -1,14 +1,15 @@
 package wasmabi
 
 const (
-	ABI         = "pmail-hook@1"
-	HostModule  = "env"
-	ExportAlloc = "pmail_alloc"
-	ExportFree  = "pmail_free"
-	ExportHook  = "pmail_hook"
-	ImportEmit  = "pmail_emit"
-	ImportLog   = "pmail_log"
-	ImportHTTP  = "pmail_http_post"
+	ABI           = "pmail-hook@1"
+	HostModule    = "env"
+	ExportAlloc   = "pmail_alloc"
+	ExportFree    = "pmail_free"
+	ExportHook    = "pmail_hook"
+	ImportEmit    = "pmail_emit"
+	ImportLog     = "pmail_log"
+	ImportHTTP    = "pmail_http_post"
+	ImportHTTPGet = "pmail_http_get"
 )
 
 const (

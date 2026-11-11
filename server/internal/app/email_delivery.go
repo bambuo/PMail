@@ -8,7 +8,7 @@ import (
 	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/consts"
 	"github.com/Jinnrry/pmail/dto/parsemail"
-	"github.com/Jinnrry/pmail/hooks/framework"
+	"github.com/Jinnrry/pmail/hooks/contract"
 	"github.com/Jinnrry/pmail/internal/domain"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/array"
@@ -60,7 +60,7 @@ func smtpRunSendAfterHooks(ctx *context.Context, email *parsemail.Email, domainE
 			continue
 		}
 		process.WaitProcess(func(value any) {
-			value.(framework.EmailHook).SendAfter(ctx, email, domainErrors)
+			value.(contract.EmailHook).SendAfter(ctx, email, domainErrors)
 		}, hook)
 	}
 	process.Wait()

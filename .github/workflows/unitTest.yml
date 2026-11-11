@@ -31,7 +31,7 @@ jobs:
         env:
           POSTGRESQL_PASSWORD: githubTest
     container:
-      image: golang
+      image: golang:1.27.3
     env:
       REPOSITORY: ${{ github.repository }}
       TRIGGERING_ACTOR: ${{ github.triggering_actor }}

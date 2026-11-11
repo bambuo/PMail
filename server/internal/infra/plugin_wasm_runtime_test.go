@@ -13,7 +13,7 @@ import (
 	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/dto/parsemail"
 	"github.com/Jinnrry/pmail/dto/plugin"
-	"github.com/Jinnrry/pmail/hooks/framework"
+	"github.com/Jinnrry/pmail/hooks/contract"
 	"github.com/Jinnrry/pmail/hooks/wasmabi"
 	"github.com/Jinnrry/pmail/models"
 	pcontext "github.com/Jinnrry/pmail/pkg/context"
@@ -443,7 +443,7 @@ func TestRedactEmail(t *testing.T) {
 
 func TestPluginManagerLifecycle(t *testing.T) {
 	oldHooks := PluginHookList
-	PluginHookList = map[string]framework.EmailHook{}
+	PluginHookList = map[string]contract.EmailHook{}
 	defer func() { PluginHookList = oldHooks }()
 
 	root := t.TempDir()
@@ -601,7 +601,7 @@ func TestWasmHookReceiveParseBeforeWrite(t *testing.T) {
 
 func TestPluginManagerBadPluginDoesNotBlock(t *testing.T) {
 	oldHooks := PluginHookList
-	PluginHookList = map[string]framework.EmailHook{}
+	PluginHookList = map[string]contract.EmailHook{}
 	defer func() { PluginHookList = oldHooks }()
 
 	root := t.TempDir()
@@ -715,7 +715,7 @@ func TestPluginManagerApproveInvalidGrant(t *testing.T) {
 
 func TestPluginManagerNameConflict(t *testing.T) {
 	oldHooks := PluginHookList
-	PluginHookList = map[string]framework.EmailHook{"echo": noopHook{}}
+	PluginHookList = map[string]contract.EmailHook{"echo": noopHook{}}
 	defer func() { PluginHookList = oldHooks }()
 	_, mgr := newTestManager(t, buildWasm(t, wasmFixture{response: []byte(`{"name":"echo"}`)}), nil)
 	defer mgr.stop()
@@ -729,7 +729,7 @@ func TestPluginManagerNameConflict(t *testing.T) {
 
 func TestPluginManagerReloadFailureKeepsOld(t *testing.T) {
 	oldHooks := PluginHookList
-	PluginHookList = map[string]framework.EmailHook{}
+	PluginHookList = map[string]contract.EmailHook{}
 	defer func() { PluginHookList = oldHooks }()
 	root, mgr := newTestManager(t, buildWasm(t, wasmFixture{response: []byte(`{"name":"echo"}`)}), nil)
 	defer mgr.stop()
@@ -901,7 +901,7 @@ func TestPluginManagerEnableFromPending(t *testing.T) {
 
 func TestPluginManagerManifestChangeResetsPending(t *testing.T) {
 	oldHooks := PluginHookList
-	PluginHookList = map[string]framework.EmailHook{}
+	PluginHookList = map[string]contract.EmailHook{}
 	defer func() { PluginHookList = oldHooks }()
 
 	root, mgr := newTestManager(t, buildWasm(t, wasmFixture{response: []byte(`{"name":"v1"}`)}), nil)

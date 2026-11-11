@@ -1,4 +1,4 @@
-# 插件介绍
+# SpamBlock 模型训练与服务
 
 使用机器学习的方式识别垃圾邮件。模型使用的是RETVec。模型参数约 200k，在我1核1G的服务器上，单次推理耗时约3秒，Mac M1上可达到毫秒级耗时。耗时上，其实可以将模型进行裁剪，转换为Tensorflow Lite模型，转换后模型的资源消耗应该更小。但是Lite模型部署比较繁琐，涉及大量C库的编译安装，过程过于复杂。另外
 我觉得，这个模型在我这垃圾服务器上面都能勉强使用，其他所有人的服务器上面应该都能顺利运行了，没必要继续裁剪模型了。
@@ -50,13 +50,15 @@ curl -X POST http://localhost:8501/v1/models/emotion_model:predict -d '{
 }
 ```
 
-4、将spam_block插件移动到pmail插件目录
+4、配置 WASM 插件 manifest
 
-5、设置插件
+在 `server/hooks/wasm_plugins/manifests/spam_block.json` 中把 `config.api_url` 指向模型服务，并把 `http_allow` 设置为同一主机（例如 `127.0.0.1:8501`）。
 
-PMail后台->右上角设置按钮->插件设置->SpamBlock
+5、构建并部署插件
 
-接口地址表示模型api访问地址，如果你是使用Docker部署，PMail和tensorflow/serving容器需要设置为相同网络才能通信，并且需要把localhost替换为tensorflow/serving的容器名称
+`make wasm_plugins`，把 `output/spam_block/` 放到运行目录 `plugins/wasm/spam_block/`，在 设置 → 插件设置 中审批启用。
+
+接口地址表示模型 API 访问地址。如果使用 Docker 部署，PMail 和 tensorflow/serving 容器需要设置为相同网络才能通信，并把 `localhost` 替换为 tensorflow/serving 的容器名称。
 
 # 模型效果
 

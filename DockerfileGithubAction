@@ -1,4 +1,4 @@
-FROM golang:alpine as serverbuild
+FROM golang:1.27.3-alpine as serverbuild
 ARG VERSION
 ARG GITHASH
 WORKDIR /work
@@ -7,8 +7,7 @@ COPY server .
 
 RUN apk update && apk add git
 RUN go build -ldflags "-s -w -X 'main.version=${VERSION}' -X 'main.goVersion=$(go version)' -X 'main.gitHash=${GITHASH}' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail ./cmd/pmail
-RUN cd /work/hooks/wechat_push && go build -ldflags "-s -w" -o output/wechat_push wechat_push.go
-RUN cd /work/hooks/spam_block && go build -ldflags "-s -w" -o output/spam_block spam_block.go
+RUN cd /work/hooks/wasm_plugins && for p in spam_block wechat_push; do mkdir -p output/$p && CGO_ENABLED=0 GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -o output/$p/plugin.wasm ./cmd/$p && cp manifests/$p.json output/$p/manifest.json; done
 
 
 FROM alpine
@@ -23,8 +22,8 @@ RUN apk add --no-cache tzdata \
 
 
 COPY --from=serverbuild /work/pmail .
-COPY --from=serverbuild /work/hooks/wechat_push/output/* ./plugins/
-COPY --from=serverbuild /work/hooks/spam_block/output/* ./plugins/
+COPY --from=serverbuild /work/hooks/wasm_plugins/output/spam_block ./plugins/wasm/spam_block/
+COPY --from=serverbuild /work/hooks/wasm_plugins/output/wechat_push ./plugins/wasm/wechat_push/
 
 EXPOSE 25 80 110 443 465 587 995 993
 

@@ -115,21 +115,15 @@ IMAP Server Address : imap.[Your Domain]
 IMAP Port: 993(SSL)
 # Plugin
 
-[WeChat Push](server/hooks/wechat_push/README.md)
+Built-in plugins run in a WASM sandbox:
 
-[Spam Block](server/hooks/spam_block/README.md)
-
-[Spam Block (WASM)](server/hooks/spam_block_wasm/README.md): requires `pluginWasmEnabled` and a model service
-
-# Community plugins
-
-[Telegram Push](https://github.com/ydzydzydz/pmail_telegram_push)
+[WASM built-in plugins (spam block, WeChat push, debug)](server/hooks/wasm_plugins/README.md)
 
 ## Plugin Install
 > [!IMPORTANT]
-> Plugins run on your server as independent processes, please review the security of third-party plugins on your own.PMail currently only maintains the plugins mentioned above.
+> Plugins run in a WASM sandbox but can still reach HTTP hosts granted by their manifest. Review third-party capability declarations yourself.
 
-Copy plugin binary file to `/plugins`
+Place `plugin.wasm` and `manifest.json` under `plugins/wasm/{id}/`, enable `pluginWasmEnabled`, then approve and enable the plugin in Settings → Plugins. Third-party plugins must be implemented as WASM.
 
 # For Developer
 

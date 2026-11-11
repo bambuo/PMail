@@ -1,0 +1,26 @@
+{
+  "id": "wechat_push",
+  "name": "WeChat Push",
+  "version": "1.0.0",
+  "abi": "pmail-hook@1",
+  "entry": "plugin.wasm",
+  "hooks": ["ReceiveSaveAfter", "GetName", "SettingsHtml"],
+  "capabilities": ["log", "email.read", "http"],
+  "http_allow": ["api.weixin.qq.com"],
+  "config": {
+    "app_id": "",
+    "secret": "",
+    "template_id": "",
+    "user_id": "",
+    "web_url": "https://mail.example.com",
+    "admin_user_id": "1",
+    "api_base": "https://api.weixin.qq.com"
+  },
+  "mounts": [],
+  "limits": {
+    "memory_mb": 128,
+    "timeout_ms": 5000,
+    "async_timeout_ms": 20000,
+    "output_bytes": 262144
+  }
+}

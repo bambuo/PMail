@@ -17,8 +17,8 @@ import (
 	pcontext "github.com/Jinnrry/pmail/pkg/context"
 )
 
-// TestSpamBlockWasmPlugin 构建 server/hooks/spam_block_wasm，并用 mock 模型服务跑通
-// ReceiveParseAfter 的完整链路。构建较慢，-short 时跳过。
+// TestSpamBlockWasmPlugin 构建 server/hooks/wasm_plugins/cmd/spam_block，并用 mock 模型服务
+// 跑通 ReceiveParseAfter 的完整链路。构建较慢，-short 时跳过。
 func TestSpamBlockWasmPlugin(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping wasm plugin build in short mode")
@@ -29,8 +29,8 @@ func TestSpamBlockWasmPlugin(t *testing.T) {
 
 	dir := t.TempDir()
 	wasmPath := filepath.Join(dir, "plugin.wasm")
-	cmd := exec.Command("go", "build", "-buildmode=c-shared", "-o", wasmPath, ".")
-	cmd.Dir = "../../hooks/spam_block_wasm"
+	cmd := exec.Command("go", "build", "-buildmode=c-shared", "-o", wasmPath, "./cmd/spam_block")
+	cmd.Dir = "../../hooks/wasm_plugins"
 	cmd.Env = append(os.Environ(), "GOOS=wasip1", "GOARCH=wasm", "CGO_ENABLED=0")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build plugin: %v\n%s", err, out)
@@ -64,7 +64,7 @@ func TestSpamBlockWasmPlugin(t *testing.T) {
 	}
 	manifest := map[string]any{
 		"id":           "spam_block",
-		"name": "SpamBlock",
+		"name":         "SpamBlock",
 		"version":      "1.0.0",
 		"abi":          "pmail-hook@1",
 		"hooks":        []string{"ReceiveParseAfter"},

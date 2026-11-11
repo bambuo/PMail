@@ -23,7 +23,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Jinnrry/pmail/dto/parsemail"
-	"github.com/Jinnrry/pmail/hooks/framework"
+	"github.com/Jinnrry/pmail/hooks/contract"
 	"github.com/Jinnrry/pmail/hooks/wasmabi"
 	"github.com/Jinnrry/pmail/models"
 	pcontext "github.com/Jinnrry/pmail/pkg/context"
@@ -362,6 +362,9 @@ func (e *wasmExecutor) init(ctx context.Context) error {
 		host.NewFunctionBuilder().WithFunc(func(urlPtr, urlLen, bodyPtr, bodyLen, outPtr, outCap uint32) int32 {
 			return e.httpPost(urlPtr, urlLen, bodyPtr, bodyLen, outPtr, outCap)
 		}).Export(wasmabi.ImportHTTP)
+		host.NewFunctionBuilder().WithFunc(func(urlPtr, urlLen, outPtr, outCap uint32) int32 {
+			return e.httpGet(urlPtr, urlLen, outPtr, outCap)
+		}).Export(wasmabi.ImportHTTPGet)
 	}
 	if _, err := host.Instantiate(ctx); err != nil {
 		rt.CloseWithExitCode(ctx, 0)
@@ -507,6 +510,14 @@ func (e *wasmExecutor) logMessage(level, ptr, size uint32) {
 }
 
 func (e *wasmExecutor) httpPost(urlPtr, urlLen, bodyPtr, bodyLen, outPtr, outCap uint32) int32 {
+	return e.httpDo(http.MethodPost, urlPtr, urlLen, bodyPtr, bodyLen, outPtr, outCap)
+}
+
+func (e *wasmExecutor) httpGet(urlPtr, urlLen, outPtr, outCap uint32) int32 {
+	return e.httpDo(http.MethodGet, urlPtr, urlLen, 0, 0, outPtr, outCap)
+}
+
+func (e *wasmExecutor) httpDo(method string, urlPtr, urlLen, bodyPtr, bodyLen, outPtr, outCap uint32) int32 {
 	if urlLen == 0 || urlLen > 2048 || bodyLen > 1<<20 || outCap == 0 || int(outCap) > e.maxOut {
 		return -1
 	}
@@ -514,20 +525,29 @@ func (e *wasmExecutor) httpPost(urlPtr, urlLen, bodyPtr, bodyLen, outPtr, outCap
 	if !ok {
 		return -1
 	}
-	body, ok := e.readGuest(bodyPtr, bodyLen)
-	if !ok {
-		return -1
+	var body []byte
+	if bodyLen > 0 {
+		body, ok = e.readGuest(bodyPtr, bodyLen)
+		if !ok {
+			return -1
+		}
 	}
 	target, err := checkHTTPURL(string(rawURL), e.httpAllow)
 	if err != nil {
 		log.WithField("plugin_id", e.pluginID).Warnf("wasm plugin http denied: %v", err)
 		return -1
 	}
-	req, err := http.NewRequest(http.MethodPost, target.String(), bytes.NewReader(body))
+	var bodyReader io.Reader
+	if bodyLen > 0 {
+		bodyReader = bytes.NewReader(body)
+	}
+	req, err := http.NewRequest(method, target.String(), bodyReader)
 	if err != nil {
 		return -1
 	}
-	req.Header.Set("Content-Type", "application/json")
+	if method == http.MethodPost {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	resp, err := e.httpClient.Do(req)
 	if err != nil {
 		log.WithField("plugin_id", e.pluginID).Warnf("wasm plugin http %s failed: %v", target.Host, err)
@@ -609,7 +629,7 @@ func (c *pluginCounters) snapshot() (int64, int64, string, string) {
 	return c.callCount.Load(), c.errorCount.Load(), last, lastUsed
 }
 
-// WasmHook 把 WASM 插件适配为 framework.EmailHook。
+// WasmHook 把 WASM 插件适配为 contract.EmailHook。
 type WasmHook struct {
 	id            string
 	manifest      *WasmManifest
@@ -622,7 +642,7 @@ type WasmHook struct {
 	inflight      sync.WaitGroup
 }
 
-var _ framework.EmailHook = (*WasmHook)(nil)
+var _ contract.EmailHook = (*WasmHook)(nil)
 
 func (h *WasmHook) Name() string { return h.id }
 

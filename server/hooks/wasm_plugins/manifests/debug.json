@@ -1,0 +1,16 @@
+{
+  "id": "debug",
+  "name": "Debug",
+  "version": "1.0.0",
+  "abi": "pmail-hook@1",
+  "entry": "plugin.wasm",
+  "hooks": ["SendBefore", "SendAfter", "ReceiveParseBefore", "ReceiveParseAfter", "ReceiveSaveAfter", "GetName", "SettingsHtml"],
+  "capabilities": ["log", "email.read", "email.write"],
+  "mounts": [],
+  "limits": {
+    "memory_mb": 128,
+    "timeout_ms": 5000,
+    "async_timeout_ms": 10000,
+    "output_bytes": 262144
+  }
+}

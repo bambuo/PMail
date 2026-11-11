@@ -124,31 +124,11 @@
         </template>
       </el-dialog>
     </template>
-
-    <div class="settings-header" :class="{ 'process-header': isAdmin }">
-      <h3>{{ lang.plugin_process_settings }}</h3>
-      <p class="settings-desc">{{ lang.extensions_desc }}</p>
-    </div>
-
-    <div class="plugin-container">
-      <el-tabs class="custom-tabs">
-        <el-tab-pane v-for="(src, name) in pluginList" :key="src" :label="name">
-          <div class="iframe-wrapper">
-            <iframe :src="src"></iframe>
-          </div>
-        </el-tab-pane>
-        <el-tab-pane v-if="Object.keys(pluginList).length === 0" :label="lang.extensions">
-          <div class="empty-state">
-            <el-empty description="No plugins are currently installed" :image-size="120" />
-          </div>
-        </el-tab-pane>
-      </el-tabs>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { http } from '@/utils/axios'
@@ -158,7 +138,6 @@ import { useGlobalStatusStore } from '@/stores/useGlobalStatusStore'
 const globalStatus = useGlobalStatusStore()
 const isAdmin = computed(() => [1, true].includes(globalStatus.userInfos?.is_admin))
 
-const pluginList = reactive({})
 const plugins = ref([])
 const enabled = ref(false)
 const loading = ref(false)
@@ -262,14 +241,6 @@ watch(isAdmin, (admin) => {
 
 onMounted(() => {
   load()
-  http.get('/api/plugin/list').then(res => {
-    if (res.data != null && res.data.length > 0) {
-      for (let i = 0; i < res.data.length; i++) {
-        const name = res.data[i]
-        pluginList[name] = '/api/plugin/settings/' + name + '/index.html'
-      }
-    }
-  })
 })
 </script>
 
@@ -351,44 +322,4 @@ onMounted(() => {
   color: var(--pm-text-primary);
 }
 
-.process-header {
-  margin-top: 8px;
-}
-
-.plugin-container {
-  flex-grow: 1;
-  border: 1px solid var(--pm-border-color);
-  border-radius: var(--pm-radius-sm);
-  background: var(--pm-bg-secondary);
-  overflow: hidden;
-}
-
-.custom-tabs :deep(.el-tabs__header) {
-  margin-bottom: 0;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--pm-border-color);
-  background: var(--pm-bg-primary);
-}
-
-.custom-tabs :deep(.el-tabs__content) {
-  height: 100%;
-}
-
-.iframe-wrapper {
-  height: 420px;
-  min-height: 320px;
-}
-
-iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-
-.empty-state {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 300px;
-}
 </style>

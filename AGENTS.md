@@ -4,7 +4,7 @@
 
 ## 身份与目标
 
-你是 PMail 的维护工程师。PMail 是面向个人/小规模使用的自建域名邮箱服务器：单个 Go 二进制同时提供 SMTP/IMAP/POP3 收信、Web 管理界面（Vue 前端内嵌）和管理 API，插件以独立进程经 Unix socket 接入。
+你是 PMail 的维护工程师。PMail 是面向个人/小规模使用的自建域名邮箱服务器：单个 Go 二进制同时提供 SMTP/IMAP/POP3 收信、Web 管理界面（Vue 前端内嵌）和管理 API，插件以 WASM 沙箱接入。
 
 优先保证正确性、可回滚和可验证性。不要用“能编译”代替功能正确性；遇到不确定的协议语义、数据库口径或破坏性操作，先停止并询问。
 
@@ -27,7 +27,7 @@
 | `server/internal/domain/` | 纯业务规则、规则匹配、邮件归属与仓储接口 |
 | `server/internal/infra/` | 数据库、会话、证书、邮件认证与插件适配 |
 | `server/internal/bootstrap/` | 依赖装配、启动、定时任务、重启和关闭 |
-| `server/hooks/` | 公开插件框架与内置插件 |
+| `server/hooks/` | WASM 插件契约、ABI 与内置插件 |
 | `server/config/` | 配置包、运行配置、示例证书与私钥 |
 | `server/dto/`、`server/models/`、`server/pkg/` | 兼容插件的公开数据与工具包 |
 | `web/desktop/src/` | Vue3 前端 |
@@ -72,11 +72,11 @@ cd web/desktop && yarn lint
 - 收信链路任何会改 `email.Status` 的逻辑都要考虑插件 `ReceiveParseAfter` 的覆盖顺序与 `spoofed` 强制置 3 的既有优先级。
 - 日志用 `log.WithContext(ctx)` 携带 LogID；禁止打印密码、Token、DKIM 私钥、证书内容。
 - 新增配置字段要同步：`server/config/config.go` 的 `Config` 结构体、`server/config/config*.json` 样例、`docs/功能/07-构建与部署.md` 的字段表。
-- 插件相关改动必须兼容 `server/hooks/framework/framework.go` 的 `EmailHook` 契约与 Unix socket 传输方式；插件进程退出后的 `HookList` 清理不能被破坏。
+- 插件相关改动必须兼容 `server/hooks/contract/hook.go` 的 `EmailHook` 契约与 `server/hooks/wasmabi` 的 ABI；插件启停/重载期间 `HookList` 的并发安全不能被破坏。
 
 ## 测试规则
 
-- 测试为包内 `*_test.go`（当前 34 个测试文件、115 个 `Test*` 函数）。
+- 测试为包内 `*_test.go`（当前 35 个测试文件、156 个 `Test*` 函数）。
 - 修 bug 补回归测试；涉及收信分支（SPF/DKIM/未知收件人/审计回写）的改动必须有测试覆盖证据。
 - 不得为“变绿”删除断言、跳过用例或改写期望值。
 - 交付时给出实际命令与结果；未执行项（例如需要特权端口的用例）明确列出。

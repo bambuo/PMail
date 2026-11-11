@@ -1,6 +1,6 @@
-.PHONY: build clean build_fe build_server wechat_push spam_block spam_block_wasm plugin package test test_mysql test_postgres run run_dev check_arch
+.PHONY: build clean build_fe build_server wasm_plugins package test test_mysql test_postgres run run_dev check_arch
 
-build: build_fe build_server spam_block spam_block_wasm wechat_push package
+build: build_fe build_server wasm_plugins package
 
 clean:
 	rm -rf output
@@ -17,26 +17,13 @@ build_server:
 	cd server && CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail_mac_amd64  ./cmd/pmail
 	cd server && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail_mac_arm64  ./cmd/pmail
 
-wechat_push:
-	cd server/hooks/wechat_push && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o output/wechat_push_linux_amd64  wechat_push.go
-	cd server/hooks/wechat_push && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o output/wechat_push_windows_amd64.exe  wechat_push.go
-	cd server/hooks/wechat_push && CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o output/wechat_push_mac_amd64  wechat_push.go
-	cd server/hooks/wechat_push && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o output/wechat_push_mac_arm64  wechat_push.go
+wasm_plugins:
+	cd server/hooks/wasm_plugins && for p in spam_block wechat_push debug; do \
+		mkdir -p output/$$p; \
+		CGO_ENABLED=0 GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -o output/$$p/plugin.wasm ./cmd/$$p; \
+		cp manifests/$$p.json output/$$p/manifest.json; \
+	done
 
-spam_block:
-	cd server/hooks/spam_block && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o output/spam_block_linux_amd64  spam_block.go
-	cd server/hooks/spam_block && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o output/spam_block_windows_amd64.exe  spam_block.go
-	cd server/hooks/spam_block && CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o output/spam_block_mac_amd64  spam_block.go
-	cd server/hooks/spam_block && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o output/spam_block_mac_arm64  spam_block.go
-
-spam_block_wasm:
-	mkdir -p server/hooks/spam_block_wasm/output
-	cd server/hooks/spam_block_wasm && CGO_ENABLED=0 GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -o output/plugin.wasm .
-	cp server/hooks/spam_block_wasm/manifest.json server/hooks/spam_block_wasm/output/manifest.json
-
-
-
-plugin: spam_block wechat_push
 
 
 package: clean
@@ -47,10 +34,9 @@ package: clean
 	cp -r server/config/dkim output/config/
 	cp -r server/config/ssl output/config/
 	cp -r server/config/config.json output/config/
-	mv server/hooks/spam_block/output/* output/plugins
-	mv server/hooks/wechat_push/output/* output/plugins
-	mkdir -p output/plugins/wasm/spam_block
-	mv server/hooks/spam_block_wasm/output/* output/plugins/wasm/spam_block/
+	mkdir -p output/plugins/wasm
+	cp -r server/hooks/wasm_plugins/output/spam_block output/plugins/wasm/
+	cp -r server/hooks/wasm_plugins/output/wechat_push output/plugins/wasm/
 	cp README.md output/
 
 test:

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Jinnrry/pmail/dto/plugin"
-	"github.com/Jinnrry/pmail/hooks/framework"
+	"github.com/Jinnrry/pmail/hooks/contract"
 	pcontext "github.com/Jinnrry/pmail/pkg/context"
 )
 
@@ -17,9 +17,9 @@ type SessionPort interface {
 }
 
 var Sessions SessionPort
-var AllHooks func() []framework.EmailHook
+var AllHooks func() []contract.EmailHook
 var HookNames func() []string
-var GetHook func(string) (framework.EmailHook, bool)
+var GetHook func(string) (contract.EmailHook, bool)
 var InitializeDatabase func(string) error
 var GenerateDKIM func() string
 

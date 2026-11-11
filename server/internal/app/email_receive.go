@@ -10,7 +10,7 @@ import (
 	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/consts"
 	"github.com/Jinnrry/pmail/dto/parsemail"
-	"github.com/Jinnrry/pmail/hooks/framework"
+	"github.com/Jinnrry/pmail/hooks/contract"
 	"github.com/Jinnrry/pmail/internal/domain"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/array"
@@ -146,7 +146,7 @@ func (s *MailSubmission) Receive(r io.Reader) error {
 				continue
 			}
 			as3.WaitProcess(func(hk any) {
-				hk.(framework.EmailHook).ReceiveSaveAfter(ctx, email, ue)
+				hk.(contract.EmailHook).ReceiveSaveAfter(ctx, email, ue)
 			}, hook)
 		}
 		as3.Wait()

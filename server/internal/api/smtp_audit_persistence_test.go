@@ -17,7 +17,7 @@ import (
 	"github.com/Jinnrry/pmail/consts"
 	"github.com/Jinnrry/pmail/dto"
 	"github.com/Jinnrry/pmail/dto/parsemail"
-	"github.com/Jinnrry/pmail/hooks/framework"
+	"github.com/Jinnrry/pmail/hooks/contract"
 	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/Jinnrry/pmail/internal/infra"
 	"github.com/Jinnrry/pmail/models"
@@ -325,7 +325,7 @@ func TestSendAfterHookCompletesBeforeFinalPersistAndSMTPResult(t *testing.T) {
 		release:                       make(chan struct{}),
 		done:                          make(chan struct{}),
 	}
-	infra.PluginHookList = map[string]framework.EmailHook{"blocking": hook}
+	infra.PluginHookList = map[string]contract.EmailHook{"blocking": hook}
 
 	result := make(chan error, 1)
 	go func() {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/Jinnrry/pmail/config"
 	parsemail2 "github.com/Jinnrry/pmail/dto/parsemail"
+	"github.com/Jinnrry/pmail/hooks/contract"
 	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/Jinnrry/pmail/internal/infra"
 	"github.com/Jinnrry/pmail/pkg/context"
@@ -46,7 +47,7 @@ func smtpTestInit() {
 	infra.InitDatabase("")
 	infra.SessionInit()
 	app.Sessions = infra.SessionInstance
-	infra.PluginInit("dev")
+	infra.PluginHookList = map[string]contract.EmailHook{}
 }
 
 func TestGmail(t *testing.T) {

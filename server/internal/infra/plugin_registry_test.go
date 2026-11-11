@@ -5,12 +5,11 @@ import (
 	"testing"
 
 	"github.com/Jinnrry/pmail/dto/parsemail"
-	"github.com/Jinnrry/pmail/hooks/framework"
+	"github.com/Jinnrry/pmail/hooks/contract"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/context"
 )
 
-// fakeHook 实现 framework.EmailHook 接口，仅用于测试。
 type pluginFakeHook struct {
 	name string
 }
@@ -28,31 +27,21 @@ func (f *pluginFakeHook) SettingsHtml(ctx *context.Context, url string, requestD
 }
 
 func pluginResetHookList() {
-	PluginHookList = map[string]framework.EmailHook{}
+	PluginHookList = map[string]contract.EmailHook{}
 }
 
-// TestRegisterAndGetHook 验证注册与按键读取使用同一个键。
-// 这是历史 bug 的核心：注册用 GetName() 返回值（如 "SpamBlock"），
-// 清理协程却用插件文件名（如 "spam_block"）去 delete，键不匹配导致
-// 死插件永远残留在 HookList 中。
+// TestRegisterAndGetHook 验证注册与按键读取使用同一个键；插件停用时必须用注册键移除。
 func TestRegisterAndGetHook(t *testing.T) {
 	pluginResetHookList()
 
-	// 模拟真实流程：注册键 = GetName() 返回值。
-	registeredKey := "SpamBlock"
+	registeredKey := "spam_block"
 	PluginRegisterHook(registeredKey, &pluginFakeHook{name: registeredKey})
-
-	// 用同一个键能取到。
 	if _, ok := PluginGetHook(registeredKey); !ok {
 		t.Fatalf("GetHook(%q) = not found, want found", registeredKey)
 	}
-
-	// 用插件文件名（不同键）取不到，说明键语义是正确的。
-	if _, ok := PluginGetHook("spam_block"); ok {
-		t.Fatalf("GetHook(%q) = found, want not found (文件名不是注册键)", "spam_block")
+	if _, ok := PluginGetHook("other"); ok {
+		t.Fatalf("GetHook(%q) = found, want not found", "other")
 	}
-
-	// RemoveHook 用注册键移除后应取不到。
 	PluginRemoveHook(registeredKey)
 	if _, ok := PluginGetHook(registeredKey); ok {
 		t.Fatalf("GetHook(%q) after RemoveHook = found, want not found", registeredKey)
@@ -70,8 +59,6 @@ func TestAllHooksSnapshot(t *testing.T) {
 	if len(snap) != 2 {
 		t.Fatalf("AllHooks() len = %d, want 2", len(snap))
 	}
-
-	// 移除后快照不受影响（已拷贝），但新快照会变。
 	PluginRemoveHook("A")
 	if len(snap) != 2 {
 		t.Fatalf("snapshot should be immutable, got %d", len(snap))
@@ -84,8 +71,8 @@ func TestAllHooksSnapshot(t *testing.T) {
 // TestHookNames 验证名称列表与注册键一致。
 func TestHookNames(t *testing.T) {
 	pluginResetHookList()
-	PluginRegisterHook("SpamBlock", &pluginFakeHook{name: "SpamBlock"})
-	PluginRegisterHook("WeChatPush", &pluginFakeHook{name: "WeChatPush"})
+	PluginRegisterHook("spam_block", &pluginFakeHook{name: "spam_block"})
+	PluginRegisterHook("wechat_push", &pluginFakeHook{name: "wechat_push"})
 
 	names := PluginHookNames()
 	if len(names) != 2 {
@@ -95,13 +82,12 @@ func TestHookNames(t *testing.T) {
 	for _, n := range names {
 		seen[n] = true
 	}
-	if !seen["SpamBlock"] || !seen["WeChatPush"] {
-		t.Fatalf("HookNames() = %v, want contain SpamBlock and WeChatPush", names)
+	if !seen["spam_block"] || !seen["wechat_push"] {
+		t.Fatalf("HookNames() = %v, want contain spam_block and wechat_push", names)
 	}
 }
 
 // TestConcurrentAccess 在 -race 下验证并发读写不会触发数据竞争。
-// 模拟插件进程退出（RemoveHook）与收发邮件（AllHooks 遍历）同时进行。
 func TestConcurrentAccess(t *testing.T) {
 	pluginResetHookList()
 	const plugins = 50
@@ -111,8 +97,6 @@ func TestConcurrentAccess(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
-
-	// 读侧：模拟收/发邮件时遍历插件。
 	for i := 0; i < 20; i++ {
 		wg.Add(1)
 		go func() {
@@ -127,8 +111,6 @@ func TestConcurrentAccess(t *testing.T) {
 			}
 		}()
 	}
-
-	// 写侧：模拟插件进程退出时的移除。
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func(i int) {
@@ -140,6 +122,5 @@ func TestConcurrentAccess(t *testing.T) {
 			}
 		}(i)
 	}
-
 	wg.Wait()
 }
