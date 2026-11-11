@@ -35,14 +35,31 @@
             {{ record.Disabled === 1 ? lang.disabled : lang.enabled }}
           </a-tag>
         </template>
-        <template #actions="{ record }">
-          <a-button
+        <template #mfa="{ record }">
+          <a-tag
+            :color="record.MfaEnabled ? 'green' : 'gray'"
             size="small"
-            type="text"
-            @click="handleEdit(record)"
           >
-            Edit
-          </a-button>
+            {{ record.MfaEnabled ? lang.mfa_enabled : lang.mfa_disabled }}
+          </a-tag>
+        </template>
+        <template #actions="{ record }">
+          <div class="row-actions">
+            <a-button
+              size="small"
+              type="text"
+              @click="openMfa(record)"
+            >
+              MFA
+            </a-button>
+            <a-button
+              size="small"
+              type="text"
+              @click="handleEdit(record)"
+            >
+              Edit
+            </a-button>
+          </div>
         </template>
       </a-table>
     </div>
@@ -102,21 +119,142 @@
         </a-form>
       </div>
     </a-modal>
+
+    <a-modal
+      v-model:visible="mfaDialogVisible"
+      :title="lang.mfa_title"
+      :footer="false"
+      :width="480"
+    >
+      <div
+        v-if="mfaTarget"
+        class="mfa-panel"
+      >
+        <div class="mfa-target">
+          <span class="mfa-target-label">{{ lang.account }}</span>
+          <strong>{{ mfaTarget.Account }}</strong>
+          <a-tag
+            :color="mfaTarget.MfaEnabled ? 'green' : 'gray'"
+            size="small"
+          >
+            {{ mfaTarget.MfaEnabled ? lang.mfa_enabled : lang.mfa_disabled }}
+          </a-tag>
+          <span
+            v-if="mfaTarget.MfaEnabled"
+            class="mfa-muted"
+          >
+            {{ lang.mfa_recovery_remaining }}: {{ mfaTarget.MfaRecoveryCodesRemaining }}
+          </span>
+        </div>
+
+        <template v-if="!mfaTarget.MfaEnabled">
+          <p class="mfa-desc">
+            {{ lang.mfa_bind_hint }}
+          </p>
+          <a-button
+            v-if="!mfaSetup"
+            type="primary"
+            :loading="mfaLoading"
+            @click="startMfaSetup"
+          >
+            {{ lang.mfa_bind }}
+          </a-button>
+          <template v-else>
+            <p class="mfa-desc">
+              {{ lang.mfa_scan_desc }}
+            </p>
+            <img
+              :src="mfaSetup.qrDataUrl"
+              alt="MFA QR"
+              class="mfa-qr"
+            >
+            <div class="mfa-key-row">
+              <span class="mfa-muted">{{ lang.mfa_manual_key }}</span>
+              <code>{{ mfaSetup.secret }}</code>
+            </div>
+            <a-input
+              v-model="mfaCode"
+              :placeholder="lang.mfa_code_6"
+              @press-enter="confirmMfaSetup"
+            />
+            <a-button
+              type="primary"
+              long
+              :loading="mfaLoading"
+              @click="confirmMfaSetup"
+            >
+              {{ lang.mfa_confirm }}
+            </a-button>
+          </template>
+        </template>
+
+        <template v-else-if="recoveryCodes.length === 0">
+          <p class="mfa-desc">
+            {{ lang.mfa_reset_desc }}
+          </p>
+          <a-input-password
+            v-model="mfaPassword"
+            :placeholder="lang.password"
+          />
+          <a-button
+            status="danger"
+            type="outline"
+            long
+            :loading="mfaLoading"
+            @click="resetMfa"
+          >
+            {{ lang.mfa_unbind }}
+          </a-button>
+        </template>
+
+        <div
+          v-if="recoveryCodes.length > 0"
+          class="mfa-recovery"
+        >
+          <p class="mfa-desc">
+            {{ lang.mfa_recovery_desc }}
+          </p>
+          <p
+            v-if="!isMfaSelf"
+            class="mfa-desc"
+          >
+            {{ lang.mfa_admin_recovery_hint }}
+          </p>
+          <div class="mfa-recovery-list">
+            <code
+              v-for="code in recoveryCodes"
+              :key="code"
+            >{{ code }}</code>
+          </div>
+          <a-button
+            type="primary"
+            long
+            @click="recoveryCodes = []"
+          >
+            {{ lang.mfa_saved }}
+          </a-button>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import { Notification } from '@arco-design/web-vue'
+import { computed, reactive, ref } from 'vue'
+import { Message, Notification } from '@arco-design/web-vue'
 import { IconPlus } from '@arco-design/web-vue/es/icon'
 import lang from '@/i18n/i18n'
 import { http } from '@/utils/axios'
+import { useGlobalStatusStore } from '@/stores/useGlobalStatusStore'
+import type { MFASetupData } from '@/types/api'
 
 interface UserItem {
   ID: number
   Account: string
   Name: string
   Disabled: number
+  MfaEnabled: boolean
+  MfaRecoveryCodesRemaining: number
 }
 
 interface UserListResponse {
@@ -125,11 +263,20 @@ interface UserListResponse {
   list: UserItem[]
 }
 
+const globalStatus = useGlobalStatusStore()
 const userList = ref<UserItem[]>([])
 const currentPage = ref(1)
 const totalPage = ref(1)
 const userInfoDialog = ref(false)
 const editModel = ref<'edit' | 'create'>('edit')
+const mfaDialogVisible = ref(false)
+const mfaTarget = ref<UserItem | null>(null)
+const mfaSetup = ref<MFASetupData | null>(null)
+const mfaCode = ref('')
+const mfaPassword = ref('')
+const mfaLoading = ref(false)
+const recoveryCodes = ref<string[]>([])
+const isMfaSelf = computed(() => mfaTarget.value?.Account === globalStatus.userInfos.account)
 const editUserInfo = reactive({
   account: '',
   name: '',
@@ -143,7 +290,8 @@ const columns = [
   { title: lang.account, dataIndex: 'Account', ellipsis: true, tooltip: true },
   { title: lang.user_name, dataIndex: 'Name', ellipsis: true, tooltip: true },
   { title: lang.disabled, dataIndex: 'Disabled', slotName: 'status', width: 120 },
-  { title: '', slotName: 'actions', width: 100, align: 'right' as const }
+  { title: 'MFA', dataIndex: 'MfaEnabled', slotName: 'mfa', width: 120 },
+  { title: '', slotName: 'actions', width: 160, align: 'right' as const }
 ]
 
 const reflushList = () => {
@@ -176,6 +324,90 @@ const createUser = () => {
   editModel.value = 'create'
   title.value = lang.newUser
   userInfoDialog.value = true
+}
+
+const openMfa = (row: UserItem) => {
+  mfaTarget.value = row
+  mfaSetup.value = null
+  mfaCode.value = ''
+  mfaPassword.value = ''
+  recoveryCodes.value = []
+  mfaDialogVisible.value = true
+}
+
+const startMfaSetup = () => {
+  if (!mfaTarget.value) return
+  mfaLoading.value = true
+  http
+    .post<MFASetupData>('/api/mfa/setup', { account: mfaTarget.value.Account })
+    .then((res) => {
+      if (res.errorNo !== 0) {
+        Notification.error({ title: lang.fail, content: res.errorMsg || lang.fail })
+        return
+      }
+      mfaSetup.value = res.data
+    })
+    .finally(() => {
+      mfaLoading.value = false
+    })
+}
+
+const confirmMfaSetup = () => {
+  const target = mfaTarget.value
+  if (!target) return
+  if (!mfaCode.value.trim()) {
+    Message.warning(lang.mfa_code_6)
+    return
+  }
+  mfaLoading.value = true
+  http
+    .post<{ recoveryCodes: string[] }>('/api/mfa/confirm', {
+      account: target.Account,
+      code: mfaCode.value.trim()
+    })
+    .then((res) => {
+      if (res.errorNo !== 0) {
+        Notification.error({ title: lang.fail, content: res.errorMsg || lang.fail })
+        return
+      }
+      recoveryCodes.value = res.data?.recoveryCodes ?? []
+      target.MfaEnabled = true
+      target.MfaRecoveryCodesRemaining = recoveryCodes.value.length
+      mfaSetup.value = null
+      mfaCode.value = ''
+      reflushList()
+      Notification.success({ title: lang.succ, content: lang.mfa_bind_success })
+    })
+    .finally(() => {
+      mfaLoading.value = false
+    })
+}
+
+const resetMfa = () => {
+  const target = mfaTarget.value
+  if (!target) return
+  if (!mfaPassword.value) {
+    Message.warning(lang.password)
+    return
+  }
+  mfaLoading.value = true
+  http
+    .post('/api/mfa/reset', { account: target.Account, password: mfaPassword.value })
+    .then((res) => {
+      if (res.errorNo !== 0) {
+        Notification.error({ title: lang.fail, content: res.errorMsg || lang.fail })
+        return
+      }
+      target.MfaEnabled = false
+      target.MfaRecoveryCodesRemaining = 0
+      mfaPassword.value = ''
+      recoveryCodes.value = []
+      reflushList()
+      Notification.success({ title: lang.succ, content: lang.mfa_unbind_success })
+    })
+    .finally(() => {
+      mfaLoading.value = false
+    })
 }
 
 const submit = () => {
@@ -249,6 +481,85 @@ reflushList()
 
 .dialog-content {
   padding: 0 8px;
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.mfa-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mfa-target {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mfa-target-label {
+  color: var(--pm-text-secondary);
+  font-size: 13px;
+}
+
+.mfa-muted {
+  color: var(--pm-text-secondary);
+  font-size: 13px;
+}
+
+.mfa-desc {
+  font-size: 14px;
+  color: var(--pm-text-secondary);
+  margin: 0;
+}
+
+.mfa-qr {
+  width: 220px;
+  height: 220px;
+  align-self: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.mfa-key-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mfa-key-row code {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--pm-bg-secondary);
+  word-break: break-all;
+}
+
+.mfa-recovery {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--pm-border-color);
+  padding-top: 16px;
+}
+
+.mfa-recovery-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mfa-recovery-list code {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--pm-bg-secondary);
+  text-align: center;
 }
 
 .status-switch {

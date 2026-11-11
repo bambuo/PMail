@@ -43,22 +43,37 @@ func HTTPLogin(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	}
 
 	if user.ID != 0 {
+		if app.MFAIsEnabled(&user) {
+			token, err := app.CreateMFAChallenge(user.ID)
+			if err != nil {
+				response.NewErrorResponse(response.ServerError, err.Error(), "").FPrint(w)
+				return
+			}
+			response.NewSuccessResponse(map[string]any{
+				"mfaRequired":    true,
+				"challengeToken": token,
+			}).FPrint(w)
+			return
+		}
 		userStr, _ := json.Marshal(user)
 		app.Sessions.Put(req.Context(), "user", string(userStr))
-
-		domains := config.Instance.Domains
-		domains = array.Difference(domains, []string{config.Instance.Domain})
-		domains = append([]string{config.Instance.Domain}, domains...)
-
-		response.NewSuccessResponse(map[string]any{
-			"account":  user.Account,
-			"name":     user.Name,
-			"is_admin": user.IsAdmin,
-			"domains":  domains,
-		}).FPrint(w)
+		loginUserResponse(w, &user)
 	} else {
 		response.NewErrorResponse(response.ParamsError, app.TextGetText(ctx.Lang, "aperror"), "").FPrint(w)
 	}
+}
+
+func loginUserResponse(w http.ResponseWriter, user *models.User) {
+	domains := config.Instance.Domains
+	domains = array.Difference(domains, []string{config.Instance.Domain})
+	domains = append([]string{config.Instance.Domain}, domains...)
+
+	response.NewSuccessResponse(map[string]any{
+		"account":  user.Account,
+		"name":     user.Name,
+		"is_admin": user.IsAdmin,
+		"domains":  domains,
+	}).FPrint(w)
 }
 
 func HTTPLogout(ctx *context.Context, w http.ResponseWriter, req *http.Request) {

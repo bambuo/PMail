@@ -16,6 +16,8 @@ var (
 		"invalid_email_address": "无效的邮箱地址！",
 		"deleted":               "已删除",
 		"junk":                  "广告箱",
+		"mfa_invalid":           "动态码错误或已过期",
+		"mfa_login_required":    "该账号已启用两步验证，请通过网页登录",
 	}
 	textEn = map[string]string{
 		"all_email":             "All Email",
@@ -32,6 +34,8 @@ var (
 		"invalid_email_address": "Invalid e-mail address!",
 		"deleted":               "Deleted",
 		"junk":                  "Junk",
+		"mfa_invalid":           "Invalid or expired MFA code",
+		"mfa_login_required":    "Two-factor authentication is enabled for this account. Sign in through the web UI.",
 	}
 )
 

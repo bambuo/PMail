@@ -19,7 +19,9 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/mileusna/spf v0.9.5
+	github.com/pquerna/otp v1.4.0
 	github.com/sirupsen/logrus v1.9.3
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/spf13/cast v1.7.1
 	github.com/tetratelabs/wazero v1.12.0
 	golang.org/x/crypto v0.43.0
@@ -32,6 +34,7 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.0 // indirect

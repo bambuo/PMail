@@ -67,6 +67,15 @@ type httpUserListRequest struct {
 	PageSize    int `json:"page_size"`
 }
 
+type httpUserListItem struct {
+	ID                        int    `json:"ID"`
+	Account                   string `json:"Account"`
+	Name                      string `json:"Name"`
+	Disabled                  int    `json:"Disabled"`
+	MfaEnabled                bool   `json:"MfaEnabled"`
+	MfaRecoveryCodesRemaining int    `json:"MfaRecoveryCodesRemaining"`
+}
+
 func HTTPUserList(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	if !ctx.IsAdmin {
 		response.NewErrorResponse(response.NoAccessPrivileges, "No Access Privileges", "").FPrint(w)
@@ -99,10 +108,28 @@ func HTTPUserList(ctx *context.Context, w http.ResponseWriter, req *http.Request
 		log.Errorf("%+v", err)
 	}
 
+	list := make([]httpUserListItem, 0, len(users))
+	for _, user := range users {
+		item := httpUserListItem{
+			ID:         user.ID,
+			Account:    user.Account,
+			Name:       user.Name,
+			Disabled:   user.Disabled,
+			MfaEnabled: user.MfaEnabled == 1,
+		}
+		if user.MfaRecoveryCodes != "" {
+			var hashes []string
+			if err := json.Unmarshal([]byte(user.MfaRecoveryCodes), &hashes); err == nil {
+				item.MfaRecoveryCodesRemaining = len(hashes)
+			}
+		}
+		list = append(list, item)
+	}
+
 	response.NewSuccessResponse(map[string]any{
 		"current_page": reqData.CurrentPage,
 		"total_page":   cast.ToInt(math.Ceil(cast.ToFloat64(totalNum) / cast.ToFloat64(reqData.PageSize))),
-		"list":         users,
+		"list":         list,
 	}).FPrint(w)
 
 }

@@ -62,6 +62,12 @@ func httpServerRouter(mux *http.ServeMux) {
 	mux.HandleFunc("/api/plugin/manage/reject", httpServerContextIterceptor(HTTPPluginManageReject))
 	mux.HandleFunc("/api/plugin/manage/reload", httpServerContextIterceptor(HTTPPluginManageReload))
 	mux.HandleFunc("/api/plugin/manage/upload", httpServerContextIterceptor(HTTPPluginManageUpload))
+	mux.HandleFunc("/api/mfa/status", httpServerContextIterceptor(HTTPMFAStatus))
+	mux.HandleFunc("/api/mfa/setup", httpServerContextIterceptor(HTTPMFASetup))
+	mux.HandleFunc("/api/mfa/confirm", httpServerContextIterceptor(HTTPMFAConfirm))
+	mux.HandleFunc("/api/mfa/disable", httpServerContextIterceptor(HTTPMFADisable))
+	mux.HandleFunc("/api/mfa/reset", httpServerContextIterceptor(HTTPMFAReset))
+	mux.HandleFunc("/api/login/mfa", httpServerContextIterceptor(HTTPLoginMFA))
 }
 
 func StartHTTP() {

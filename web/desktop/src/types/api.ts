@@ -10,3 +10,14 @@ export interface UserInfo {
   is_admin: boolean
   domains: string[]
 }
+
+export interface LoginResult extends Partial<UserInfo> {
+  mfaRequired?: boolean
+  challengeToken?: string
+}
+
+export interface MFASetupData {
+  secret: string
+  url: string
+  qrDataUrl: string
+}

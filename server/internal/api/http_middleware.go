@@ -112,7 +112,11 @@ func httpServerContextIterceptor(h HTTPHandlerFunc) http.HandlerFunc {
 				token := r.Header.Get("Token")
 				if token != "" {
 					user, err := httpServerGetLoginInfoByToken(token)
-					if user.ID >= 0 && err == nil {
+					if user.ID > 0 && err == nil {
+						if app.MFAIsEnabled(&user) {
+							response.NewErrorResponse(response.NeedLogin, app.TextGetText(ctx.Lang, "mfa_login_required"), "").FPrint(w)
+							return
+						}
 						ctx.UserID = user.ID
 						ctx.UserName = user.Name
 						ctx.UserAccount = user.Account
@@ -125,7 +129,7 @@ func httpServerContextIterceptor(h HTTPHandlerFunc) http.HandlerFunc {
 			}
 
 			if ctx.UserID == 0 {
-				if r.URL.Path != "/api/ping" && r.URL.Path != "/api/login" {
+				if r.URL.Path != "/api/ping" && r.URL.Path != "/api/login" && r.URL.Path != "/api/login/mfa" {
 					response.NewErrorResponse(response.NeedLogin, app.TextGetText(ctx.Lang, "login_exp"), "").FPrint(w)
 					return
 				}

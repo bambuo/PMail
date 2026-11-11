@@ -14,6 +14,7 @@
           </p>
 
           <a-form
+            v-if="!mfaRequired"
             :model="form"
             layout="vertical"
             class="auth-form"
@@ -46,6 +47,49 @@
               </a-button>
             </div>
           </a-form>
+
+          <div
+            v-else
+            class="mfa-login"
+          >
+            <a-form
+              :model="{ code: mfaCode }"
+              layout="vertical"
+              @keyup.enter="onVerifyMfa"
+            >
+              <a-form-item :label="lang.mfa_login_title">
+                <a-input
+                  v-model="mfaCode"
+                  :placeholder="lang.mfa_code"
+                  size="large"
+                  autofocus
+                />
+              </a-form-item>
+            </a-form>
+            <p class="mfa-desc">
+              {{ lang.mfa_login_desc }}
+            </p>
+            <div class="submit-action">
+              <a-button
+                type="primary"
+                size="large"
+                long
+                class="login-btn"
+                :loading="mfaLoading"
+                @click="onVerifyMfa"
+              >
+                {{ lang.mfa_verify }}
+              </a-button>
+            </div>
+            <a-button
+              type="text"
+              long
+              class="mfa-back"
+              @click="resetMfa"
+            >
+              {{ lang.mfa_back }}
+            </a-button>
+          </div>
         </div>
       </div>
     </div>
@@ -59,10 +103,14 @@ import { router } from '@/router'
 import lang from '@/i18n/i18n'
 import { http } from '@/utils/axios'
 import { useGlobalStatusStore } from '@/stores/useGlobalStatusStore'
-import type { UserInfo } from '@/types/api'
+import type { LoginResult, UserInfo } from '@/types/api'
 
 const globalStatus = useGlobalStatusStore()
 const loading = ref(false)
+const mfaRequired = ref(false)
+const challengeToken = ref('')
+const mfaCode = ref('')
+const mfaLoading = ref(false)
 
 const form = reactive({
   account: '',
@@ -76,24 +124,64 @@ const onSubmit = () => {
   }
   loading.value = true
   http
-    .post<Partial<UserInfo>>('/api/login', form)
+    .post<LoginResult>('/api/login', form)
     .then((res) => {
       loading.value = false
       if (res.errorNo !== 0) {
         Message.error(res.errorMsg)
-      } else {
-        Object.assign(globalStatus.userInfos, res.data)
-        router.replace({
-          path: '/',
-          query: {
-            redirect: router.currentRoute.value.fullPath
-          }
-        })
+        return
       }
+      if (res.data.mfaRequired) {
+        mfaRequired.value = true
+        challengeToken.value = res.data.challengeToken ?? ''
+        mfaCode.value = ''
+        return
+      }
+      finishLogin(res.data)
     })
     .catch(() => {
       loading.value = false
     })
+}
+
+const onVerifyMfa = () => {
+  if (!mfaCode.value.trim()) {
+    Message.warning(lang.mfa_code)
+    return
+  }
+  mfaLoading.value = true
+  http
+    .post<Partial<UserInfo>>('/api/login/mfa', {
+      challengeToken: challengeToken.value,
+      code: mfaCode.value.trim()
+    })
+    .then((res) => {
+      mfaLoading.value = false
+      if (res.errorNo !== 0) {
+        Message.error(res.errorMsg || lang.mfa_verify_failed)
+        return
+      }
+      finishLogin(res.data)
+    })
+    .catch(() => {
+      mfaLoading.value = false
+    })
+}
+
+const finishLogin = (user: Partial<UserInfo>) => {
+  Object.assign(globalStatus.userInfos, user)
+  router.replace({
+    path: '/',
+    query: {
+      redirect: router.currentRoute.value.fullPath
+    }
+  })
+}
+
+const resetMfa = () => {
+  mfaRequired.value = false
+  challengeToken.value = ''
+  mfaCode.value = ''
 }
 </script>
 
@@ -174,6 +262,17 @@ const onSubmit = () => {
 
 .submit-action {
   margin-top: 34px;
+}
+
+.mfa-desc {
+  color: var(--pm-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.mfa-back {
+  margin-top: 8px;
+  color: var(--pm-text-secondary);
 }
 
 .login-btn {

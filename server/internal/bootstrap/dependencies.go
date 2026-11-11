@@ -34,6 +34,13 @@ func BindDependencies() {
 	app.PluginReject = infra.PluginManageReject
 	app.PluginReload = infra.PluginManageReload
 	app.PluginInstall = infra.PluginManageInstall
+	app.SetupMFAFn = infra.MFASetup
+	app.ConfirmMFAFn = infra.MFAConfirm
+	app.DisableMFAFn = infra.MFADisable
+	app.ResetMFAFn = infra.MFAReset
+	app.StatusMFAFn = infra.MFAStatus
+	app.CreateMFAChallengeFn = infra.MFACreateChallenge
+	app.VerifyMFAChallengeFn = infra.MFAVerifyChallenge
 	app.GetCertificateType = infra.CertificateGetSSL
 	app.SetCertificate = infra.CertificateSetSSL
 	app.GenerateCertificate = infra.CertificateGenSSL
