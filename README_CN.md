@@ -123,7 +123,7 @@ IMAP端口： 993(SSL)
 > [!IMPORTANT]
 > 插件运行在 WASM 沙箱中，但仍可访问已授权的 HTTP 主机。请自行审查第三方插件的能力声明。
 
-将 `plugin.wasm` 与 `manifest.json` 放到 `plugins/wasm/{id}/`，开启 `pluginWasmEnabled` 后，在 设置 → 插件设置 中审批并启用。第三方插件需以 WASM 形式实现。
+执行 `make plugin_tgz` 生成 `.tgz` 包，在 设置 → 插件设置 中上传后审批并启用；插件不随 Docker 镜像内置。第三方插件需以 WASM 形式实现。
 
 # 参与开发
 

@@ -1,6 +1,6 @@
-.PHONY: build clean build_fe build_server wasm_plugins package docker_build test test_e2e test_mysql test_postgres run run_dev check_arch
+.PHONY: build clean build_fe build_server wasm_plugins plugin_tgz package docker_build test test_e2e test_mysql test_postgres run run_dev check_arch
 
-build: build_fe build_server wasm_plugins package
+build: build_fe build_server package
 
 clean:
 	rm -rf output
@@ -24,27 +24,30 @@ wasm_plugins:
 		cp manifests/$$p.json output/$$p/manifest.json; \
 	done
 
+plugin_tgz: wasm_plugins
+	cd server/hooks/wasm_plugins/output && for p in spam_block wechat_push debug; do COPYFILE_DISABLE=1 tar -czf $$p.tgz -C $$p .; done
+	@echo "插件包已生成：server/hooks/wasm_plugins/output/*.tgz"
+
 
 
 package: clean
 	mkdir output
 	mv server/pmail* output/
 	mkdir output/config
-	mkdir output/plugins
 	cp -r deploy/config/dkim output/config/
 	cp -r deploy/config/ssl output/config/
 	cp -r deploy/config/config.json output/config/
-	mkdir -p output/plugins/wasm
-	cp -r server/hooks/wasm_plugins/output/spam_block output/plugins/wasm/
-	cp -r server/hooks/wasm_plugins/output/wechat_push output/plugins/wasm/
 	cp README.md output/
 
 docker_build:
-	docker build \
+	@test -d server/internal/api/http/dist || { echo "缺少前端产物：先执行 make build_fe"; exit 1; }
+	docker buildx build \
+		--platform $${PLATFORM:-linux/amd64} \
 		--build-arg VERSION=$$(git describe --tags --always 2>/dev/null || echo dev) \
 		--build-arg GIT_HASH=$$(git rev-parse HEAD 2>/dev/null || echo unknown) \
 		--build-arg BUILD_TIME=$$(date -u +%Y-%m-%dT%H:%M:%SZ) \
-		-t pmail:latest .
+		--build-arg GOPROXY=$${GOPROXY:-https://proxy.golang.org,direct} \
+		-t $${IMAGE:-pmail:latest} --load .
 
 test_fixtures:
 	mkdir -p server/config

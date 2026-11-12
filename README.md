@@ -123,7 +123,7 @@ Built-in plugins run in a WASM sandbox:
 > [!IMPORTANT]
 > Plugins run in a WASM sandbox but can still reach HTTP hosts granted by their manifest. Review third-party capability declarations yourself.
 
-Place `plugin.wasm` and `manifest.json` under `plugins/wasm/{id}/`, enable `pluginWasmEnabled`, then approve and enable the plugin in Settings → Plugins. Third-party plugins must be implemented as WASM.
+Run `make plugin_tgz` to build a `.tgz` package, upload it in Settings → Plugins, then approve and enable it. Plugins are not bundled in the Docker image. Third-party plugins must be implemented as WASM.
 
 # For Developer
 

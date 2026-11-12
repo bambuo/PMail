@@ -1,8 +1,9 @@
 package plugin
 
 import (
-	"archive/zip"
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,7 +21,7 @@ const (
 	maxPluginPackageFiles  = 16
 )
 
-// install 接受一个 zip 包，包根目录必须包含 manifest.json 与 manifest 声明的入口 wasm。
+// install 接受一个 .tgz 包，包根目录必须包含 manifest.json 与 manifest 声明的入口 wasm。
 func (m *pluginManager) install(data []byte) (plugin.Info, error) {
 	if m == nil || m.store == nil {
 		return plugin.Info{}, plugin.ErrDisabled
@@ -28,7 +29,7 @@ func (m *pluginManager) install(data []byte) (plugin.Info, error) {
 	if len(data) == 0 || len(data) > maxPluginPackageBytes {
 		return plugin.Info{}, fmt.Errorf("plugin package must be between 1 byte and %d bytes", maxPluginPackageBytes)
 	}
-	files, err := readPluginZip(data)
+	files, err := readPluginArchive(data)
 	if err != nil {
 		return plugin.Info{}, err
 	}
@@ -113,36 +114,54 @@ func (m *pluginManager) install(data []byte) (plugin.Info, error) {
 	return plugin.Info{ID: id, Name: art.Manifest.Name, Type: "wasm", Version: art.Manifest.Version, ABI: art.Manifest.ABI, Status: plugin.StatusPending}, nil
 }
 
-func readPluginZip(data []byte) (map[string][]byte, error) {
-	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+func readPluginArchive(data []byte) (map[string][]byte, error) {
+	if len(data) < 2 || data[0] != 0x1f || data[1] != 0x8b {
+		return nil, errors.New("plugin package must be a .tgz archive")
+	}
+	zr, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("open plugin package: %w", err)
 	}
+	defer zr.Close()
+	tr := tar.NewReader(zr)
 	files := make(map[string][]byte)
 	var total int64
-	for _, f := range zr.File {
-		if f.FileInfo().IsDir() {
-			return nil, errors.New("plugin package must not contain directories")
+	for {
+		hdr, err := tr.Next()
+		if errors.Is(err, io.EOF) {
+			break
 		}
-		name := f.Name
-		if name == "" || name != filepath.Base(name) || strings.ContainsAny(name, `/\`) || name == "." || name == ".." {
-			return nil, fmt.Errorf("invalid plugin file name %q", name)
+		if err != nil {
+			return nil, fmt.Errorf("read plugin package: %w", err)
 		}
-		if f.FileInfo().Mode()&os.ModeSymlink != 0 {
-			return nil, fmt.Errorf("plugin file %q must not be a symlink", name)
+		if hdr.Typeflag == tar.TypeDir {
+			continue
+		}
+		if hdr.Typeflag != tar.TypeReg && hdr.Typeflag != tar.TypeRegA {
+			return nil, fmt.Errorf("plugin file %q must be a regular file", hdr.Name)
+		}
+		if hdr.Size > maxPluginUnpackedBytes {
+			return nil, fmt.Errorf("plugin file %q is too large", hdr.Name)
+		}
+		name := strings.TrimPrefix(hdr.Name, "./")
+		if name == "" || name == "." {
+			continue
+		}
+		base := filepath.Base(name)
+		// macOS tar 会附加 AppleDouble 与 Finder 元数据，与插件内容无关。
+		if strings.HasPrefix(base, "._") || base == ".DS_Store" {
+			continue
+		}
+		if name != base || strings.ContainsAny(name, `/\`) || name == ".." {
+			return nil, fmt.Errorf("invalid plugin file name %q", hdr.Name)
 		}
 		if len(files) >= maxPluginPackageFiles {
 			return nil, fmt.Errorf("plugin package must contain at most %d files", maxPluginPackageFiles)
 		}
-		if f.UncompressedSize64 > maxPluginUnpackedBytes {
-			return nil, fmt.Errorf("plugin file %q is too large", name)
+		if _, exists := files[name]; exists {
+			return nil, fmt.Errorf("duplicate plugin file %q", name)
 		}
-		rc, err := f.Open()
-		if err != nil {
-			return nil, fmt.Errorf("read plugin file %q: %w", name, err)
-		}
-		body, err := io.ReadAll(io.LimitReader(rc, maxPluginUnpackedBytes+1))
-		_ = rc.Close()
+		body, err := io.ReadAll(io.LimitReader(tr, maxPluginUnpackedBytes+1))
 		if err != nil {
 			return nil, fmt.Errorf("read plugin file %q: %w", name, err)
 		}
@@ -152,9 +171,6 @@ func readPluginZip(data []byte) (map[string][]byte, error) {
 		total += int64(len(body))
 		if total > maxPluginUnpackedBytes {
 			return nil, errors.New("plugin package is too large after decompression")
-		}
-		if _, exists := files[name]; exists {
-			return nil, fmt.Errorf("duplicate plugin file %q", name)
 		}
 		files[name] = body
 	}

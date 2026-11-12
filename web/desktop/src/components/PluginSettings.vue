@@ -13,7 +13,7 @@
             <input
               ref="uploadInput"
               type="file"
-              accept=".zip,application/zip"
+              accept=".tgz,application/gzip,application/x-gzip"
               class="hidden-input"
               @change="onUploadChange"
             >
@@ -344,8 +344,8 @@ const onUploadChange = (event: Event) => {
   const file = input.files?.[0]
   input.value = ''
   if (!file) return
-  if (!file.name.toLowerCase().endsWith('.zip')) {
-    Message.warning(lang.plugin_upload_zip_only)
+  if (!file.name.toLowerCase().endsWith('.tgz')) {
+    Message.warning(lang.plugin_upload_tgz_only)
     return
   }
   if (file.size > 32 * 1024 * 1024) {
