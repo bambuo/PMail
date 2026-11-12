@@ -7,15 +7,17 @@ const instance = axios.create({
   baseURL: import.meta.env.VITE_APP_URL,
   timeout: 60000,
   headers: {
-    'Content-Type': 'application/json;charset=UTF-8;',
     Lang: lang.lang
   }
 })
 
 instance.interceptors.request.use(
   (config) => {
-    if (config.method === 'POST' && !(config.data instanceof FormData)) {
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    } else if (config.method === 'POST') {
       config.data = JSON.stringify(config.data)
+      config.headers['Content-Type'] = 'application/json;charset=UTF-8;'
     }
     return config
   },
