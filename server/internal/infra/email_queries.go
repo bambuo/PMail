@@ -13,108 +13,108 @@ import (
 	"xorm.io/builder"
 )
 
-func (PersistenceRepository) FindEmailByID(p0 int, p1 *models.Email) (bool, error) {
-	return Database.ID(p0).Get(p1)
+func (PersistenceRepository) FindEmailByID(id int, email *models.Email) (bool, error) {
+	return Database.ID(id).Get(email)
 }
-func (PersistenceRepository) FindEmailOwnership(p0 int, p1 int, p2 *[]models.UserEmail) error {
-	return Database.Table(&models.UserEmail{}).Where("email_id = ? and user_id = ?", p0, p1).Find(p2)
+func (PersistenceRepository) FindEmailOwnership(emailID int, userID int, owners *[]models.UserEmail) error {
+	return Database.Table(&models.UserEmail{}).Where("email_id = ? and user_id = ?", emailID, userID).Find(owners)
 }
-func (PersistenceRepository) FindUserEmail(p0 int, p1 int, p2 *models.UserEmail) (bool, error) {
-	return Database.Where("email_id = ? AND user_id = ?", p0, p1).Get(p2)
+func (PersistenceRepository) FindUserEmail(emailID int, userID int, ue *models.UserEmail) (bool, error) {
+	return Database.Where("email_id = ? AND user_id = ?", emailID, userID).Get(ue)
 }
-func (PersistenceRepository) FindEmailDetail(p0 int, p1 *response.EmailResponseData) (bool, error) {
-	return Database.Select("*,1 as is_read").Table("email").Where("id=?", p0).Get(p1)
+func (PersistenceRepository) FindEmailDetail(id int, detail *response.EmailResponseData) (bool, error) {
+	return Database.Select("*,1 as is_read").Table("email").Where("id=?", id).Get(detail)
 }
-func (PersistenceRepository) MarkUserEmailRead(p0 int, p1 *models.UserEmail) (int64, error) {
-	return Database.Where("id=?", p0).Update(p1)
+func (PersistenceRepository) MarkUserEmailRead(ueID int, ue *models.UserEmail) (int64, error) {
+	return Database.Where("id=?", ueID).Update(ue)
 }
-func (PersistenceRepository) SetEmailRead(p0 int, p1 int, p2 *models.UserEmail) (int64, error) {
-	return Database.Where("email_id = ? and user_id=?", p0, p1).Cols("is_read").Update(p2)
+func (PersistenceRepository) SetEmailRead(emailID int, userID int, ue *models.UserEmail) (int64, error) {
+	return Database.Where("email_id = ? and user_id=?", emailID, userID).Cols("is_read").Update(ue)
 }
-func (PersistenceRepository) FindUserEmailsByUID(p0 []int, p1 *[]models.UserEmail) error {
-	return Database.Where(builder.Eq{"id": p0}).Find(p1)
+func (PersistenceRepository) FindUserEmailsByUID(ueIDs []int, ues *[]models.UserEmail) error {
+	return Database.Where(builder.Eq{"id": ueIDs}).Find(ues)
 }
-func (PersistenceRepository) SelectInboxUserEmails(p0 string, p1 int, p2 *[]models.UserEmail) error {
-	return Database.SQL(p0, p1, 0).Find(p2)
+func (PersistenceRepository) SelectInboxUserEmails(sqlText string, userID int, ues *[]models.UserEmail) error {
+	return Database.SQL(sqlText, userID, 0).Find(ues)
 }
-func (PersistenceRepository) SelectSentUserEmails(p0 string, p1 int, p2 *[]models.UserEmail) error {
-	return Database.SQL(p0, p1, 1).Find(p2)
+func (PersistenceRepository) SelectSentUserEmails(sqlText string, userID int, ues *[]models.UserEmail) error {
+	return Database.SQL(sqlText, userID, 1).Find(ues)
 }
-func (PersistenceRepository) SelectDraftUserEmails(p0 string, p1 int, p2 *[]models.UserEmail) error {
-	return Database.SQL(p0, p1, 4).Find(p2)
+func (PersistenceRepository) SelectDraftUserEmails(sqlText string, userID int, ues *[]models.UserEmail) error {
+	return Database.SQL(sqlText, userID, 4).Find(ues)
 }
-func (PersistenceRepository) SelectDeletedUserEmails(p0 string, p1 int, p2 *[]models.UserEmail) error {
-	return Database.SQL(p0, p1, 3).Find(p2)
+func (PersistenceRepository) SelectDeletedUserEmails(sqlText string, userID int, ues *[]models.UserEmail) error {
+	return Database.SQL(sqlText, userID, 3).Find(ues)
 }
-func (PersistenceRepository) SelectJunkUserEmails(p0 string, p1 int, p2 *[]models.UserEmail) error {
-	return Database.SQL(p0, p1, 5).Find(p2)
+func (PersistenceRepository) SelectJunkUserEmails(sqlText string, userID int, ues *[]models.UserEmail) error {
+	return Database.SQL(sqlText, userID, 5).Find(ues)
 }
-func (PersistenceRepository) FindUserGroupByName(p0 int, p1 string, p2 *models.Group) (bool, error) {
-	return Database.Table("group").Where("user_id=? and name=?", p0, p1).Get(p2)
+func (PersistenceRepository) FindUserGroupByName(userID int, name string, group *models.Group) (bool, error) {
+	return Database.Table("group").Where("user_id=? and name=?", userID, name).Get(group)
 }
-func (PersistenceRepository) SelectGroupUserEmails(p0 []int, p1 *[]models.UserEmail, p2 int, p3 int) error {
-	return Database.SQL(fmt.Sprintf("SELECT * from (SELECT id,email_id, is_read, ROW_NUMBER() OVER (ORDER BY id) AS serial_number FROM `user_email` WHERE (user_id = ? and group_id = ?)) a WHERE serial_number in (%s)", array.Join(p0, ","))).Find(p1, p2, p3)
+func (PersistenceRepository) SelectGroupUserEmails(serialNumbers []int, ues *[]models.UserEmail, userID int, groupID int) error {
+	return Database.SQL(fmt.Sprintf("SELECT * from (SELECT id,email_id, is_read, ROW_NUMBER() OVER (ORDER BY id) AS serial_number FROM `user_email` WHERE (user_id = ? and group_id = ?)) a WHERE serial_number in (%s)", array.Join(serialNumbers, ","))).Find(ues, userID, groupID)
 }
-func (PersistenceRepository) FindEmailsByID(p0 []int, p1 *[]models.Email) error {
-	return Database.Table("email").In("id", p0).Find(p1)
+func (PersistenceRepository) FindEmailsByID(ids []int, emails *[]models.Email) error {
+	return Database.Table("email").In("id", ids).Find(emails)
 }
-func (PersistenceRepository) SelectEmailList(p0 string, p1 []any, p2 *[]*response.EmailResponseData) error {
-	return Database.SQL(p0, p1...).Find(p2)
+func (PersistenceRepository) SelectEmailList(sqlText string, args []any, emails *[]*response.EmailResponseData) error {
+	return Database.SQL(sqlText, args...).Find(emails)
 }
-func (PersistenceRepository) CountEmailList(p0 string, p1 []any, p2 *int64) (bool, error) {
-	return Database.SQL(p0, p1...).Get(p2)
+func (PersistenceRepository) CountEmailList(sqlText string, args []any, count *int64) (bool, error) {
+	return Database.SQL(sqlText, args...).Get(count)
 }
-func (PersistenceRepository) SelectMailboxStat(p0 string, p1 int, p2 *domain.EmailStatRow) (bool, error) {
-	return Database.SQL(p0, p1).Get(p2)
+func (PersistenceRepository) SelectMailboxStat(sqlText string, userID int, stat *domain.EmailStatRow) (bool, error) {
+	return Database.SQL(sqlText, userID).Get(stat)
 }
-func (PersistenceRepository) SelectMailboxUIDs(p0 string, p1 []any, p2 *[]*response.UserEmailUIDData) error {
-	return Database.SQL(p0, p1...).Find(p2)
+func (PersistenceRepository) SelectMailboxUIDs(sqlText string, args []any, ues *[]*response.UserEmailUIDData) error {
+	return Database.SQL(sqlText, args...).Find(ues)
 }
-func (PersistenceRepository) SelectInboxUIDEmails(p0 string, p1 int, p2 *[]*response.UserEmailUIDData) error {
-	return Database.SQL(p0, p1, 0).Find(p2)
+func (PersistenceRepository) SelectInboxUIDEmails(sqlText string, userID int, ues *[]*response.UserEmailUIDData) error {
+	return Database.SQL(sqlText, userID, 0).Find(ues)
 }
-func (PersistenceRepository) SelectSentUIDEmails(p0 string, p1 int, p2 *[]*response.UserEmailUIDData) error {
-	return Database.SQL(p0, p1, 1).Find(p2)
+func (PersistenceRepository) SelectSentUIDEmails(sqlText string, userID int, ues *[]*response.UserEmailUIDData) error {
+	return Database.SQL(sqlText, userID, 1).Find(ues)
 }
-func (PersistenceRepository) SelectDraftUIDEmails(p0 string, p1 int, p2 *[]*response.UserEmailUIDData) error {
-	return Database.SQL(p0, p1, 4).Find(p2)
+func (PersistenceRepository) SelectDraftUIDEmails(sqlText string, userID int, ues *[]*response.UserEmailUIDData) error {
+	return Database.SQL(sqlText, userID, 4).Find(ues)
 }
-func (PersistenceRepository) SelectDeletedUIDEmails(p0 string, p1 int, p2 *[]*response.UserEmailUIDData) error {
-	return Database.SQL(p0, p1, 3).Find(p2)
+func (PersistenceRepository) SelectDeletedUIDEmails(sqlText string, userID int, ues *[]*response.UserEmailUIDData) error {
+	return Database.SQL(sqlText, userID, 3).Find(ues)
 }
-func (PersistenceRepository) SelectJunkUIDEmails(p0 string, p1 int, p2 *[]*response.UserEmailUIDData) error {
-	return Database.SQL(p0, p1, 5).Find(p2)
+func (PersistenceRepository) SelectJunkUIDEmails(sqlText string, userID int, ues *[]*response.UserEmailUIDData) error {
+	return Database.SQL(sqlText, userID, 5).Find(ues)
 }
-func (PersistenceRepository) SelectGroupUIDs(p0 []int, p1 *[]*response.UserEmailUIDData, p2 int, p3 int) error {
-	return Database.SQL(fmt.Sprintf("SELECT * from (SELECT id,email_id, is_read, ROW_NUMBER() OVER (ORDER BY id) AS serial_number FROM `user_email` WHERE (user_id = ? and group_id = ?)) a WHERE serial_number in (%s)", array.Join(p0, ","))).Find(p1, p2, p3)
+func (PersistenceRepository) SelectGroupUIDs(serialNumbers []int, ues *[]*response.UserEmailUIDData, userID int, groupID int) error {
+	return Database.SQL(fmt.Sprintf("SELECT * from (SELECT id,email_id, is_read, ROW_NUMBER() OVER (ORDER BY id) AS serial_number FROM `user_email` WHERE (user_id = ? and group_id = ?)) a WHERE serial_number in (%s)", array.Join(serialNumbers, ","))).Find(ues, userID, groupID)
 }
-func (PersistenceRepository) FindEmailResponsesByID(p0 []int, p1 *[]*response.EmailResponseData) error {
-	return Database.Table("email").Select("*").Where(builder.Eq{"id": p0}).Find(p1)
+func (PersistenceRepository) FindEmailResponsesByID(ids []int, emails *[]*response.EmailResponseData) error {
+	return Database.Table("email").Select("*").Where(builder.Eq{"id": ids}).Find(emails)
 }
-func (PersistenceRepository) InsertOutgoingEmail(p0 *models.Email) (int64, error) {
-	return Database.Insert(p0)
+func (PersistenceRepository) InsertOutgoingEmail(email *models.Email) (int64, error) {
+	return Database.Insert(email)
 }
-func (PersistenceRepository) RecordOutgoingFailure(p0 *context.Context, p1 string, p2 int) (sql.Result, error) {
-	return Database.Exec(DatabaseWithContext(p0, "update email set status =2 ,error=? where id = ? "), p1, p2)
+func (PersistenceRepository) RecordOutgoingFailure(ctx *context.Context, errMsg string, emailID int) (sql.Result, error) {
+	return Database.Exec(DatabaseWithContext(ctx, "update email set status =2 ,error=? where id = ? "), errMsg, emailID)
 }
-func (PersistenceRepository) InsertFailedEmailOwner(p0 *models.UserEmail) (int64, error) {
-	return Database.Insert(p0)
+func (PersistenceRepository) InsertFailedEmailOwner(ue *models.UserEmail) (int64, error) {
+	return Database.Insert(ue)
 }
-func (PersistenceRepository) RecordOutgoingSuccess(p0 *context.Context, p1 int) (sql.Result, error) {
-	return Database.Exec(DatabaseWithContext(p0, "update email set status =1  where id = ? "), p1)
+func (PersistenceRepository) RecordOutgoingSuccess(ctx *context.Context, emailID int) (sql.Result, error) {
+	return Database.Exec(DatabaseWithContext(ctx, "update email set status =1  where id = ? "), emailID)
 }
-func (PersistenceRepository) UpdateUserRule(p0 *context.Context, p1 string, p2 string, p3 int, p4 string, p5 int, p6 int, p7 int) (sql.Result, error) {
-	return Database.Exec(DatabaseWithContext(p0, "update rule set name=? ,value = ? ,action = ?,params = ?,sort = ? where id = ? and user_id = ?"), p1, p2, p3, p4, p5, p6, p7)
+func (PersistenceRepository) UpdateUserRule(ctx *context.Context, name string, value string, action int, params string, sort int, ruleID int, userID int) (sql.Result, error) {
+	return Database.Exec(DatabaseWithContext(ctx, "update rule set name=? ,value = ? ,action = ?,params = ?,sort = ? where id = ? and user_id = ?"), name, value, action, params, sort, ruleID, userID)
 }
-func (PersistenceRepository) InsertUserRule(p0 *context.Context, p1 string, p2 string, p3 int, p4 int, p5 string, p6 int) (sql.Result, error) {
-	return Database.Exec(DatabaseWithContext(p0, "insert into rule (name,value,user_id,action,params,sort) values (?,?,?,?,?,?)"), p1, p2, p3, p4, p5, p6)
+func (PersistenceRepository) InsertUserRule(ctx *context.Context, name string, value string, userID int, action int, params string, sort int) (sql.Result, error) {
+	return Database.Exec(DatabaseWithContext(ctx, "insert into rule (name,value,user_id,action,params,sort) values (?,?,?,?,?,?)"), name, value, userID, action, params, sort)
 }
-func (PersistenceRepository) FindRecentUserEmails(p0 int, p1 time.Time, p2 *[]models.UserEmail) error {
-	return Database.Table("user_email").Where("user_id=? and create >=?", p0, p1).Find(p2)
+func (PersistenceRepository) FindRecentUserEmails(userID int, since time.Time, ues *[]models.UserEmail) error {
+	return Database.Table("user_email").Where("user_id=? and create >=?", userID, since).Find(ues)
 }
-func (PersistenceRepository) FindAdministrators(p0 *[]*models.User) error {
-	return Database.Table(&models.User{}).Where("is_admin=1").Find(p0)
+func (PersistenceRepository) FindAdministrators(admins *[]*models.User) error {
+	return Database.Table(&models.User{}).Where("is_admin=1").Find(admins)
 }
-func (PersistenceRepository) ListSavedEmailOwners(p0 int64, p1 *[]*models.UserEmail) error {
-	return Database.Table(&models.UserEmail{}).Where("email_id=?", p0).Find(p1)
+func (PersistenceRepository) ListSavedEmailOwners(emailID int64, owners *[]*models.UserEmail) error {
+	return Database.Table(&models.UserEmail{}).Where("email_id=?", emailID).Find(owners)
 }

@@ -12,103 +12,103 @@ import (
 	"xorm.io/builder"
 )
 
-func (PersistenceRepository) FindGroupByName(p0 string, p1 int, p2 *models.Group) (bool, error) {
-	return Database.Table("group").Where("name = ? and user_id = ?", p0, p1).Get(p2)
+func (PersistenceRepository) FindGroupByName(name string, userID int, group *models.Group) (bool, error) {
+	return Database.Table("group").Where("name = ? and user_id = ?", name, userID).Get(group)
 }
-func (PersistenceRepository) InsertGroup(p0 *models.Group) (int64, error) {
-	return Database.Insert(p0)
+func (PersistenceRepository) InsertGroup(group *models.Group) (int64, error) {
+	return Database.Insert(group)
 }
-func (PersistenceRepository) UpdateGroup(p0 int, p1 *models.Group) (int64, error) {
-	return Database.ID(p0).Update(p1)
+func (PersistenceRepository) UpdateGroup(id int, group *models.Group) (int64, error) {
+	return Database.ID(id).Update(group)
 }
-func (PersistenceRepository) FindGroupByPath(p0 string, p1 int, p2 *models.Group) (bool, error) {
-	return Database.Table("group").Where("full_path = ? and user_id = ?", p0, p1).Get(p2)
+func (PersistenceRepository) FindGroupByPath(fullPath string, userID int, group *models.Group) (bool, error) {
+	return Database.Table("group").Where("full_path = ? and user_id = ?", fullPath, userID).Get(group)
 }
-func (PersistenceRepository) FindChildGroupIDs(p0 int, p1 int, p2 *[]domain.GroupIDRow) error {
-	return Database.Table("group").Where("parent_id=? and user_id=?", p0, p1).Find(p2)
+func (PersistenceRepository) FindChildGroupIDs(parentID int, userID int, rows *[]domain.GroupIDRow) error {
+	return Database.Table("group").Where("parent_id=? and user_id=?", parentID, userID).Find(rows)
 }
-func (PersistenceRepository) MoveEmailsToGroup(p0 *context.Context, p1 []int, p2 int, p3 int) (sql.Result, error) {
-	return Database.Exec(DatabaseWithContext(p0, fmt.Sprintf("update user_email set group_id=? where email_id in (%s) and user_id =?", array.Join(p1, ","))), p2, p3)
+func (PersistenceRepository) MoveEmailsToGroup(ctx *context.Context, emailIDs []int, groupID int, userID int) (sql.Result, error) {
+	return Database.Exec(DatabaseWithContext(ctx, fmt.Sprintf("update user_email set group_id=? where email_id in (%s) and user_id =?", array.Join(emailIDs, ","))), groupID, userID)
 }
-func (PersistenceRepository) FindChildGroups(p0 int, p1 int, p2 *[]*models.Group) error {
-	return Database.Table("group").Where("parent_id=? and user_id=?", p0, p1).Find(p2)
+func (PersistenceRepository) FindChildGroups(parentID int, userID int, groups *[]*models.Group) error {
+	return Database.Table("group").Where("parent_id=? and user_id=?", parentID, userID).Find(groups)
 }
-func (PersistenceRepository) ListUserGroups(p0 int, p1 *[]*models.Group) error {
-	return Database.Table("group").Where("user_id=?", p0).Find(p1)
+func (PersistenceRepository) ListUserGroups(userID int, groups *[]*models.Group) error {
+	return Database.Table("group").Where("user_id=?", userID).Find(groups)
 }
-func (PersistenceRepository) FindGroupsByParent(p0 int, p1 *[]*models.Group) error {
-	return Database.Table("group").Where("parent_id=?", p0).Find(p1)
+func (PersistenceRepository) FindGroupsByParent(parentID int, groups *[]*models.Group) error {
+	return Database.Table("group").Where("parent_id=?", parentID).Find(groups)
 }
-func (PersistenceRepository) FindGroupByID(p0 int, p1 *models.Group) (bool, error) {
-	return Database.Table("group").Where("id=?", p0).Get(p1)
+func (PersistenceRepository) FindGroupByID(id int, group *models.Group) (bool, error) {
+	return Database.Table("group").Where("id=?", id).Get(group)
 }
-func (PersistenceRepository) CountGroupEmails(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("count(1)").Where("group_id=?", p0).Get(p1)
+func (PersistenceRepository) CountGroupEmails(groupID int, count *int) (bool, error) {
+	return Database.Table("user_email").Select("count(1)").Where("group_id=?", groupID).Get(count)
 }
-func (PersistenceRepository) FindGroupLastUID(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("id").Where("group_id=?", p0).OrderBy("id desc").Get(p1)
+func (PersistenceRepository) FindGroupLastUID(groupID int, uid *int) (bool, error) {
+	return Database.Table("user_email").Select("id").Where("group_id=?", groupID).OrderBy("id desc").Get(uid)
 }
-func (PersistenceRepository) CountGroupUnreadEmails(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("count(1)").Where("group_id=? and is_read=0", p0).Get(p1)
+func (PersistenceRepository) CountGroupUnreadEmails(groupID int, count *int) (bool, error) {
+	return Database.Table("user_email").Select("count(1)").Where("group_id=? and is_read=0", groupID).Get(count)
 }
-func (PersistenceRepository) FindLastInboxUID(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("id").Where("user_id=? and group_id=0 and status = 0", p0).OrderBy("id desc").Get(p1)
+func (PersistenceRepository) FindLastInboxUID(userID int, uid *int) (bool, error) {
+	return Database.Table("user_email").Select("id").Where("user_id=? and group_id=0 and status = 0", userID).OrderBy("id desc").Get(uid)
 }
-func (PersistenceRepository) FindLastSentUID(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("id").Where("user_id=? and group_id=0 and status = 1", p0).OrderBy("id desc").Get(p1)
+func (PersistenceRepository) FindLastSentUID(userID int, uid *int) (bool, error) {
+	return Database.Table("user_email").Select("id").Where("user_id=? and group_id=0 and status = 1", userID).OrderBy("id desc").Get(uid)
 }
-func (PersistenceRepository) FindLastDraftUID(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("id").Where("user_id=? and group_id=0 and status = 4", p0).OrderBy("id desc").Get(p1)
+func (PersistenceRepository) FindLastDraftUID(userID int, uid *int) (bool, error) {
+	return Database.Table("user_email").Select("id").Where("user_id=? and group_id=0 and status = 4", userID).OrderBy("id desc").Get(uid)
 }
-func (PersistenceRepository) FindLastDeletedUID(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("id").Where("user_id=? and status = 3", p0).OrderBy("id desc").Get(p1)
+func (PersistenceRepository) FindLastDeletedUID(userID int, uid *int) (bool, error) {
+	return Database.Table("user_email").Select("id").Where("user_id=? and status = 3", userID).OrderBy("id desc").Get(uid)
 }
-func (PersistenceRepository) FindLastJunkUID(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("id").Where("user_id=? and group_id=0 and status = 5", p0).OrderBy("id desc").Get(p1)
+func (PersistenceRepository) FindLastJunkUID(userID int, uid *int) (bool, error) {
+	return Database.Table("user_email").Select("id").Where("user_id=? and group_id=0 and status = 5", userID).OrderBy("id desc").Get(uid)
 }
-func (PersistenceRepository) CountUnreadInboxEmails(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=0 and is_read=0", p0).Get(p1)
+func (PersistenceRepository) CountUnreadInboxEmails(userID int, count *int) (bool, error) {
+	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=0 and is_read=0", userID).Get(count)
 }
-func (PersistenceRepository) CountInboxEmails(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=0", p0).Get(p1)
+func (PersistenceRepository) CountInboxEmails(userID int, count *int) (bool, error) {
+	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=0", userID).Get(count)
 }
-func (PersistenceRepository) CountSentEmails(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=1", p0).Get(p1)
+func (PersistenceRepository) CountSentEmails(userID int, count *int) (bool, error) {
+	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=1", userID).Get(count)
 }
-func (PersistenceRepository) CountUnreadDraftEmails(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=4 and is_read=0", p0).Get(p1)
+func (PersistenceRepository) CountUnreadDraftEmails(userID int, count *int) (bool, error) {
+	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=4 and is_read=0", userID).Get(count)
 }
-func (PersistenceRepository) CountDraftEmails(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=4", p0).Get(p1)
+func (PersistenceRepository) CountDraftEmails(userID int, count *int) (bool, error) {
+	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=4", userID).Get(count)
 }
-func (PersistenceRepository) CountUnreadDeletedEmails(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=3 and is_read=0", p0).Get(p1)
+func (PersistenceRepository) CountUnreadDeletedEmails(userID int, count *int) (bool, error) {
+	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=3 and is_read=0", userID).Get(count)
 }
-func (PersistenceRepository) CountDeletedEmails(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=3", p0).Get(p1)
+func (PersistenceRepository) CountDeletedEmails(userID int, count *int) (bool, error) {
+	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=3", userID).Get(count)
 }
-func (PersistenceRepository) CountUnreadJunkEmails(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=5 and is_read=0", p0).Get(p1)
+func (PersistenceRepository) CountUnreadJunkEmails(userID int, count *int) (bool, error) {
+	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=5 and is_read=0", userID).Get(count)
 }
-func (PersistenceRepository) CountJunkEmails(p0 int, p1 *int) (bool, error) {
-	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=5", p0).Get(p1)
+func (PersistenceRepository) CountJunkEmails(userID int, count *int) (bool, error) {
+	return Database.Table("user_email").Select("count(1)").Where("user_id=? and status=5", userID).Get(count)
 }
-func (PersistenceRepository) MoveEmailsToInbox(p0 int, p1 []int) (int64, error) {
-	return Database.Table(&models.UserEmail{}).Where(builder.Eq{"user_id": p0, "email_id": p1}).Update(map[string]interface {
+func (PersistenceRepository) MoveEmailsToInbox(userID int, emailIDs []int) (int64, error) {
+	return Database.Table(&models.UserEmail{}).Where(builder.Eq{"user_id": userID, "email_id": emailIDs}).Update(map[string]interface {
 	}{"status": consts.EmailTypeReceive, "group_id": 0})
 }
-func (PersistenceRepository) MoveEmailsToSent(p0 int, p1 []int) (int64, error) {
-	return Database.Table(&models.UserEmail{}).Where(builder.Eq{"user_id": p0, "email_id": p1}).Update(map[string]interface {
+func (PersistenceRepository) MoveEmailsToSent(userID int, emailIDs []int) (int64, error) {
+	return Database.Table(&models.UserEmail{}).Where(builder.Eq{"user_id": userID, "email_id": emailIDs}).Update(map[string]interface {
 	}{"status": consts.EmailStatusSent, "group_id": 0})
 }
-func (PersistenceRepository) MoveEmailsToDraft(p0 int, p1 []int) (int64, error) {
-	return Database.Table(&models.UserEmail{}).Where(builder.Eq{"user_id": p0, "email_id": p1}).Update(map[string]interface {
+func (PersistenceRepository) MoveEmailsToDraft(userID int, emailIDs []int) (int64, error) {
+	return Database.Table(&models.UserEmail{}).Where(builder.Eq{"user_id": userID, "email_id": emailIDs}).Update(map[string]interface {
 	}{"status": consts.EmailStatusDrafts, "group_id": 0})
 }
-func (PersistenceRepository) MoveEmailsToJunk(p0 int, p1 []int) (int64, error) {
-	return Database.Table(&models.UserEmail{}).Where(builder.Eq{"user_id": p0, "email_id": p1}).Update(map[string]interface {
+func (PersistenceRepository) MoveEmailsToJunk(userID int, emailIDs []int) (int64, error) {
+	return Database.Table(&models.UserEmail{}).Where(builder.Eq{"user_id": userID, "email_id": emailIDs}).Update(map[string]interface {
 	}{"status": consts.EmailStatusJunk, "group_id": 0})
 }
-func (PersistenceRepository) FindGroupsByPathPattern(p0 int, p1 string, p2 *[]*models.Group) error {
-	return Database.Table("group").Where("user_id=? and full_path like ?", p0, p1).Find(p2)
+func (PersistenceRepository) FindGroupsByPathPattern(userID int, pattern string, groups *[]*models.Group) error {
+	return Database.Table("group").Where("user_id=? and full_path like ?", userID, pattern).Find(groups)
 }

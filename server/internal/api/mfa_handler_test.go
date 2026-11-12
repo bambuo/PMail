@@ -19,12 +19,13 @@ func TestMFASetupTargetsOtherAccountOnlyForAdmin(t *testing.T) {
 	called := false
 	app.SetupMFAFn = func(ctx *pcontext.Context, account string) (*mfadto.SetupData, error) {
 		called = true
-		return &mfadto.SetupData{Secret: "secret", URL: "url", QRDataURL: "qr"}, nil
+		return &mfadto.SetupData{Secret: "test-secret", URL: "url", QRDataURL: "qr"}, nil
 	}
+	h := &MFAHandler{}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/mfa/setup", strings.NewReader(`{"account":"other"}`))
 	rec := httptest.NewRecorder()
-	HTTPMFASetup(&pcontext.Context{UserID: 1, UserAccount: "basic"}, rec, req)
+	h.Setup(&pcontext.Context{UserID: 1, UserAccount: "basic"}, rec, req)
 
 	var unauthorized response.Response
 	if err := json.Unmarshal(rec.Body.Bytes(), &unauthorized); err != nil {
@@ -39,7 +40,7 @@ func TestMFASetupTargetsOtherAccountOnlyForAdmin(t *testing.T) {
 
 	req = httptest.NewRequest(http.MethodPost, "/api/mfa/setup", strings.NewReader(`{"account":"other"}`))
 	rec = httptest.NewRecorder()
-	HTTPMFASetup(&pcontext.Context{UserID: 2, UserAccount: "admin", IsAdmin: true}, rec, req)
+	h.Setup(&pcontext.Context{UserID: 2, UserAccount: "admin", IsAdmin: true}, rec, req)
 
 	var ok response.Response
 	if err := json.Unmarshal(rec.Body.Bytes(), &ok); err != nil {
@@ -61,10 +62,11 @@ func TestMFAResetRequiresAdmin(t *testing.T) {
 		called = true
 		return nil
 	}
+	h := &MFAHandler{}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/mfa/reset", strings.NewReader(`{"account":"other","password":"pwd"}`))
 	rec := httptest.NewRecorder()
-	HTTPMFAReset(&pcontext.Context{UserID: 1, UserAccount: "basic"}, rec, req)
+	h.Reset(&pcontext.Context{UserID: 1, UserAccount: "basic"}, rec, req)
 
 	var unauthorized response.Response
 	if err := json.Unmarshal(rec.Body.Bytes(), &unauthorized); err != nil {
@@ -79,7 +81,7 @@ func TestMFAResetRequiresAdmin(t *testing.T) {
 
 	req = httptest.NewRequest(http.MethodPost, "/api/mfa/reset", strings.NewReader(`{"account":"other","password":"pwd"}`))
 	rec = httptest.NewRecorder()
-	HTTPMFAReset(&pcontext.Context{UserID: 2, UserAccount: "admin", IsAdmin: true}, rec, req)
+	h.Reset(&pcontext.Context{UserID: 2, UserAccount: "admin", IsAdmin: true}, rec, req)
 
 	var ok response.Response
 	if err := json.Unmarshal(rec.Body.Bytes(), &ok); err != nil {

@@ -15,6 +15,7 @@ func BindDependencies() {
 	app.PersistDeliveryResult = infra.PersistDeliveryResult
 	app.FindRecipientAccounts = infra.FindRecipientAccounts
 	app.Persistence = infra.PersistenceRepository{}
+	app.UserSvc = app.NewUserService(app.Persistence)
 	app.QueryEmailList = infra.QueryEmailList
 	app.QueryMailboxStat = infra.MailboxStat
 	app.QueryUIDList = infra.EmailListGetUEListByUID

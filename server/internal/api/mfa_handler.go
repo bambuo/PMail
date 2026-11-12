@@ -37,7 +37,10 @@ type mfaLoginRequest struct {
 	Code           string `json:"code"`
 }
 
-func HTTPMFAStatus(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
+// MFAHandler 用户 MFA 接口（含登录挑战），委托 MFA 用例函数
+type MFAHandler struct{}
+
+func (h *MFAHandler) Status(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		mfaFail(w, fmt.Errorf("method %s not allowed", req.Method))
 		return
@@ -50,7 +53,7 @@ func HTTPMFAStatus(ctx *pcontext.Context, w http.ResponseWriter, req *http.Reque
 	response.NewSuccessResponse(status).FPrint(w)
 }
 
-func HTTPMFASetup(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
+func (h *MFAHandler) Setup(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		mfaFail(w, fmt.Errorf("method %s not allowed", req.Method))
 		return
@@ -73,7 +76,7 @@ func HTTPMFASetup(ctx *pcontext.Context, w http.ResponseWriter, req *http.Reques
 	response.NewSuccessResponse(data).FPrint(w)
 }
 
-func HTTPMFAConfirm(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
+func (h *MFAHandler) Confirm(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		mfaFail(w, fmt.Errorf("method %s not allowed", req.Method))
 		return
@@ -96,7 +99,7 @@ func HTTPMFAConfirm(ctx *pcontext.Context, w http.ResponseWriter, req *http.Requ
 	response.NewSuccessResponse(map[string]any{"recoveryCodes": codes}).FPrint(w)
 }
 
-func HTTPMFADisable(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
+func (h *MFAHandler) Disable(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		mfaFail(w, fmt.Errorf("method %s not allowed", req.Method))
 		return
@@ -118,7 +121,7 @@ func HTTPMFADisable(ctx *pcontext.Context, w http.ResponseWriter, req *http.Requ
 	response.NewSuccessResponse("success").FPrint(w)
 }
 
-func HTTPMFAReset(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
+func (h *MFAHandler) Reset(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		mfaFail(w, fmt.Errorf("method %s not allowed", req.Method))
 		return
@@ -140,7 +143,7 @@ func HTTPMFAReset(ctx *pcontext.Context, w http.ResponseWriter, req *http.Reques
 	response.NewSuccessResponse("success").FPrint(w)
 }
 
-func HTTPLoginMFA(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
+func (h *MFAHandler) LoginMFA(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		mfaFail(w, fmt.Errorf("method %s not allowed", req.Method))
 		return

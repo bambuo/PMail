@@ -16,12 +16,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func HTTPGetRule(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
+// RuleHandler 收信规则接口，绑定规则持久化端口
+type RuleHandler struct {
+	rules app.RulePersistence
+}
+
+func (h *RuleHandler) GetRule(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	res := app.RuleGetAllRules(ctx, ctx.UserID)
 	response.NewSuccessResponse(res).FPrint(w)
 }
 
-func HTTPUpsertRule(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
+func (h *RuleHandler) UpsertRule(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 
 	requestBody, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -49,7 +54,7 @@ func HTTPUpsertRule(ctx *context.Context, w http.ResponseWriter, req *http.Reque
 		}
 	}
 
-	err = httpSave(ctx, data.Encode())
+	err = h.save(ctx, data.Encode())
 	if err != nil {
 		response.NewErrorResponse(response.ServerError, "server error", err).FPrint(w)
 		return
@@ -57,16 +62,16 @@ func HTTPUpsertRule(ctx *context.Context, w http.ResponseWriter, req *http.Reque
 	response.NewSuccessResponse("succ").FPrint(w)
 }
 
-func httpSave(ctx *context.Context, p *models.Rule) error {
+func (h *RuleHandler) save(ctx *context.Context, p *models.Rule) error {
 
 	if p.Id > 0 {
-		_, err := app.Persistence.UpdateUserRule(ctx, p.Name, p.Value, p.Action, p.Params, p.Sort, p.Id, ctx.UserID)
+		_, err := h.rules.UpdateUserRule(ctx, p.Name, p.Value, p.Action, p.Params, p.Sort, p.Id, ctx.UserID)
 		if err != nil {
 			return errors.Wrap(err)
 		}
 		return nil
 	} else {
-		_, err := app.Persistence.InsertUserRule(ctx, p.Name, p.Value, ctx.UserID, p.Action, p.Params, p.Sort)
+		_, err := h.rules.InsertUserRule(ctx, p.Name, p.Value, ctx.UserID, p.Action, p.Params, p.Sort)
 		if err != nil {
 			return errors.Wrap(err)
 		}
@@ -79,7 +84,7 @@ type httpDelRuleReq struct {
 	Id int `json:"id"`
 }
 
-func HTTPDelRule(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
+func (h *RuleHandler) DelRule(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	requestBody, err := io.ReadAll(req.Body)
 	if err != nil {
 		log.WithContext(ctx).Errorf("ReadError:%v", err)
@@ -98,7 +103,7 @@ func HTTPDelRule(ctx *context.Context, w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	_, err = app.Persistence.DeleteUserRule(ctx, data.Id, ctx.UserID)
+	_, err = h.rules.DeleteUserRule(ctx, data.Id, ctx.UserID)
 	if err != nil {
 		response.NewErrorResponse(response.ServerError, "unknown error", err).FPrint(w)
 		return

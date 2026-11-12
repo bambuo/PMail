@@ -14,7 +14,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func HTTPGetUserGroupList(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
+// GroupHandler 邮件分组接口，委托分组用例层
+type GroupHandler struct{}
+
+func (h *GroupHandler) GetUserGroupList(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	defaultGroup := []*models.Group{
 		{ID: models.INBOX, Name: app.TextGetText(ctx.Lang, "inbox"), FullPath: "/"},     // 收件箱
 		{ID: models.Junk, Name: app.TextGetText(ctx.Lang, "junk"), FullPath: "/"},       //垃圾邮件
@@ -26,7 +29,7 @@ func HTTPGetUserGroupList(ctx *context.Context, w http.ResponseWriter, req *http
 	response.NewSuccessResponse(append(defaultGroup, infos...)).FPrint(w)
 }
 
-func HTTPGetUserGroup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
+func (h *GroupHandler) GetUserGroup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 
 	retData := []*app.GroupItem{
 		{
@@ -61,7 +64,7 @@ type httpAddGroupRequest struct {
 	ParentId int    `json:"parent_id"`
 }
 
-func HTTPAddGroup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
+func (h *GroupHandler) AddGroup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	var reqData *httpAddGroupRequest
 	reqBytes, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -86,7 +89,7 @@ type httpDelGroupRequest struct {
 	Id int `json:"id"`
 }
 
-func HTTPDelGroup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
+func (h *GroupHandler) DelGroup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	var reqData *httpDelGroupRequest
 	reqBytes, err := io.ReadAll(req.Body)
 	if err != nil {

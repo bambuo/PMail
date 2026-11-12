@@ -1,5 +1,7 @@
-package // PersistencePort isolates compatibility queries from use-case orchestration.
-app
+// 持久化端口按模块拆分为角色接口（User/Email/Group/MailboxStats/Rule），
+// 每个消费方只依赖自己用到的角色接口；PersistencePort 为其组合，
+// 由 infra.PersistenceRepository 统一实现、bootstrap.BindDependencies 装配。
+package app
 
 import (
 	"database/sql"
@@ -11,79 +13,105 @@ import (
 	"github.com/Jinnrry/pmail/pkg/context"
 )
 
+// UserPersistence 用户与账号模块持久化端口
+type UserPersistence interface {
+	FindTokenAccount(account string, user *models.User) (bool, error)
+	FindAPOPAccount(account string, user *models.User) (bool, error)
+	SetAccountPassword(userID int, hash string) (int64, error)
+	ListAccounts(limit int, offset int, users *[]models.User) (int64, error)
+	FindAccountByID(id int, user *models.User) (bool, error)
+	FindAccountByName(account string, user *models.User) (bool, error)
+	UpdateAccount(id int, user *models.User) (int64, error)
+	ListSetupAccounts(users *[]*models.User) error
+	InsertAdministrator(user *models.User) (int64, error)
+	FindAdministrators(admins *[]*models.User) error
+}
+
+// EmailPersistence 邮件内容、归属与收发状态模块持久化端口
+type EmailPersistence interface {
+	FindEmailByID(id int, email *models.Email) (bool, error)
+	FindEmailsByID(ids []int, emails *[]models.Email) error
+	FindEmailDetail(id int, detail *response.EmailResponseData) (bool, error)
+	FindEmailOwnership(emailID int, userID int, owners *[]models.UserEmail) error
+	FindUserEmail(emailID int, userID int, ue *models.UserEmail) (bool, error)
+	MarkUserEmailRead(ueID int, ue *models.UserEmail) (int64, error)
+	SetEmailRead(emailID int, userID int, ue *models.UserEmail) (int64, error)
+	MoveEmailsToGroup(ctx *context.Context, emailIDs []int, groupID int, userID int) (sql.Result, error)
+	MoveEmailsToInbox(userID int, emailIDs []int) (int64, error)
+	MoveEmailsToSent(userID int, emailIDs []int) (int64, error)
+	MoveEmailsToDraft(userID int, emailIDs []int) (int64, error)
+	MoveEmailsToJunk(userID int, emailIDs []int) (int64, error)
+	InsertOutgoingEmail(email *models.Email) (int64, error)
+	RecordOutgoingFailure(ctx *context.Context, errMsg string, emailID int) (sql.Result, error)
+	RecordOutgoingSuccess(ctx *context.Context, emailID int) (sql.Result, error)
+	InsertFailedEmailOwner(ue *models.UserEmail) (int64, error)
+	FindRecentUserEmails(userID int, since time.Time, ues *[]models.UserEmail) error
+	ListSavedEmailOwners(emailID int64, owners *[]*models.UserEmail) error
+	SetEmailReceiveType(emailID int64) (int64, error)
+	ResetEmailOwnerMailbox(emailID int64, userID int) (int64, error)
+	SetEmailSendType(emailID int64) (int64, error)
+	SetOwnerDraftMailbox(emailID int64, userID int) (int64, error)
+	SetOwnerDeletedMailbox(emailID int64, userID int) (int64, error)
+	SetOwnerJunkMailbox(emailID int64, userID int) (int64, error)
+	SetOwnerCustomGroup(emailID int64, userID int, groupID int) (int64, error)
+	MarkRuleEmailRead(emailID int64, userID int) (int64, error)
+	MarkRuleEmailDeleted(emailID int64, userID int) (int64, error)
+	FindLocalForwardAccount(account string, user *models.User) (bool, error)
+	FindLocalForwardOwnership(emailID int64, userID int, ue *models.UserEmail) (bool, error)
+	InsertLocalForwardOwnership(userID int, emailID int64, status int) (int64, error)
+}
+
+// GroupPersistence 邮件分组模块持久化端口
+type GroupPersistence interface {
+	FindUserGroupByName(userID int, name string, group *models.Group) (bool, error)
+	FindGroupByName(name string, userID int, group *models.Group) (bool, error)
+	InsertGroup(group *models.Group) (int64, error)
+	UpdateGroup(id int, group *models.Group) (int64, error)
+	FindGroupByPath(fullPath string, userID int, group *models.Group) (bool, error)
+	FindChildGroupIDs(parentID int, userID int, rows *[]domain.GroupIDRow) error
+	FindChildGroups(parentID int, userID int, groups *[]*models.Group) error
+	ListUserGroups(userID int, groups *[]*models.Group) error
+	FindGroupsByParent(parentID int, groups *[]*models.Group) error
+	FindGroupByID(id int, group *models.Group) (bool, error)
+	FindGroupsByPathPattern(userID int, pattern string, groups *[]*models.Group) error
+}
+
+// MailboxStatsPersistence 邮箱统计模块持久化端口（IMAP/POP3 状态与列表计数）
+type MailboxStatsPersistence interface {
+	CountGroupEmails(groupID int, count *int) (bool, error)
+	FindGroupLastUID(groupID int, uid *int) (bool, error)
+	CountGroupUnreadEmails(groupID int, count *int) (bool, error)
+	FindLastInboxUID(userID int, uid *int) (bool, error)
+	FindLastSentUID(userID int, uid *int) (bool, error)
+	FindLastDraftUID(userID int, uid *int) (bool, error)
+	FindLastDeletedUID(userID int, uid *int) (bool, error)
+	FindLastJunkUID(userID int, uid *int) (bool, error)
+	CountUnreadInboxEmails(userID int, count *int) (bool, error)
+	CountInboxEmails(userID int, count *int) (bool, error)
+	CountSentEmails(userID int, count *int) (bool, error)
+	CountUnreadDraftEmails(userID int, count *int) (bool, error)
+	CountDraftEmails(userID int, count *int) (bool, error)
+	CountUnreadDeletedEmails(userID int, count *int) (bool, error)
+	CountDeletedEmails(userID int, count *int) (bool, error)
+	CountUnreadJunkEmails(userID int, count *int) (bool, error)
+	CountJunkEmails(userID int, count *int) (bool, error)
+}
+
+// RulePersistence 收信规则模块持久化端口
+type RulePersistence interface {
+	ListUserRules(userID int, rules *[]*models.Rule) error
+	UpdateUserRule(ctx *context.Context, name string, value string, action int, params string, sort int, ruleID int, userID int) (sql.Result, error)
+	InsertUserRule(ctx *context.Context, name string, value string, userID int, action int, params string, sort int) (sql.Result, error)
+	DeleteUserRule(ctx *context.Context, ruleID int, userID int) (sql.Result, error)
+}
+
+// PersistencePort 组合端口：兼容既有消费方，能力等于五个角色接口之和
 type PersistencePort interface {
-	FindEmailByID(p0 int, p1 *models.Email) (bool, error)
-	FindEmailOwnership(p0 int, p1 int, p2 *[]models.UserEmail) error
-	FindUserEmail(p0 int, p1 int, p2 *models.UserEmail) (bool, error)
-	FindEmailDetail(p0 int, p1 *response.EmailResponseData) (bool, error)
-	MarkUserEmailRead(p0 int, p1 *models.UserEmail) (int64, error)
-	SetEmailRead(p0 int, p1 int, p2 *models.UserEmail) (int64, error)
-	FindUserGroupByName(p0 int, p1 string, p2 *models.Group) (bool, error)
-	FindEmailsByID(p0 []int, p1 *[]models.Email) error
-	FindGroupByName(p0 string, p1 int, p2 *models.Group) (bool, error)
-	InsertGroup(p0 *models.Group) (int64, error)
-	UpdateGroup(p0 int, p1 *models.Group) (int64, error)
-	FindGroupByPath(p0 string, p1 int, p2 *models.Group) (bool, error)
-	FindChildGroupIDs(p0 int, p1 int, p2 *[]domain.GroupIDRow) error
-	MoveEmailsToGroup(p0 *context.Context, p1 []int, p2 int, p3 int) (sql.Result, error)
-	FindChildGroups(p0 int, p1 int, p2 *[]*models.Group) error
-	ListUserGroups(p0 int, p1 *[]*models.Group) error
-	FindGroupsByParent(p0 int, p1 *[]*models.Group) error
-	FindGroupByID(p0 int, p1 *models.Group) (bool, error)
-	CountGroupEmails(p0 int, p1 *int) (bool, error)
-	FindGroupLastUID(p0 int, p1 *int) (bool, error)
-	CountGroupUnreadEmails(p0 int, p1 *int) (bool, error)
-	FindLastInboxUID(p0 int, p1 *int) (bool, error)
-	FindLastSentUID(p0 int, p1 *int) (bool, error)
-	FindLastDraftUID(p0 int, p1 *int) (bool, error)
-	FindLastDeletedUID(p0 int, p1 *int) (bool, error)
-	FindLastJunkUID(p0 int, p1 *int) (bool, error)
-	CountUnreadInboxEmails(p0 int, p1 *int) (bool, error)
-	CountInboxEmails(p0 int, p1 *int) (bool, error)
-	CountSentEmails(p0 int, p1 *int) (bool, error)
-	CountUnreadDraftEmails(p0 int, p1 *int) (bool, error)
-	CountDraftEmails(p0 int, p1 *int) (bool, error)
-	CountUnreadDeletedEmails(p0 int, p1 *int) (bool, error)
-	CountDeletedEmails(p0 int, p1 *int) (bool, error)
-	CountUnreadJunkEmails(p0 int, p1 *int) (bool, error)
-	CountJunkEmails(p0 int, p1 *int) (bool, error)
-	MoveEmailsToInbox(p0 int, p1 []int) (int64, error)
-	MoveEmailsToSent(p0 int, p1 []int) (int64, error)
-	MoveEmailsToDraft(p0 int, p1 []int) (int64, error)
-	MoveEmailsToJunk(p0 int, p1 []int) (int64, error)
-	ListUserRules(p0 int, p1 *[]*models.Rule) error
-	MarkRuleEmailRead(p0 int64, p1 int) (int64, error)
-	MarkRuleEmailDeleted(p0 int64, p1 int) (int64, error)
-	FindLocalForwardAccount(p0 string, p1 *models.User) (bool, error)
-	FindLocalForwardOwnership(p0 int64, p1 int, p2 *models.UserEmail) (bool, error)
-	InsertLocalForwardOwnership(p0 int, p1 int64, p2 int) (int64, error)
-	SetEmailReceiveType(p0 int64) (int64, error)
-	ResetEmailOwnerMailbox(p0 int64, p1 int) (int64, error)
-	SetEmailSendType(p0 int64) (int64, error)
-	SetOwnerDraftMailbox(p0 int64, p1 int) (int64, error)
-	SetOwnerDeletedMailbox(p0 int64, p1 int) (int64, error)
-	SetOwnerJunkMailbox(p0 int64, p1 int) (int64, error)
-	SetOwnerCustomGroup(p0 int64, p1 int, p2 int) (int64, error)
-	ListSetupAccounts(p0 *[]*models.User) error
-	InsertAdministrator(p0 *models.User) (int64, error)
-	InsertOutgoingEmail(p0 *models.Email) (int64, error)
-	RecordOutgoingFailure(p0 *context.Context, p1 string, p2 int) (sql.Result, error)
-	InsertFailedEmailOwner(p0 *models.UserEmail) (int64, error)
-	RecordOutgoingSuccess(p0 *context.Context, p1 int) (sql.Result, error)
-	UpdateUserRule(p0 *context.Context, p1 string, p2 string, p3 int, p4 string, p5 int, p6 int, p7 int) (sql.Result, error)
-	InsertUserRule(p0 *context.Context, p1 string, p2 string, p3 int, p4 int, p5 string, p6 int) (sql.Result, error)
-	DeleteUserRule(p0 *context.Context, p1 int, p2 int) (sql.Result, error)
-	FindTokenAccount(p0 string, p1 *models.User) (bool, error)
-	SetAccountPassword(p0 int, p1 string) (int64, error)
-	ListAccounts(p0 int, p1 int, p2 *[]models.User) (int64, error)
-	FindAccountByID(p0 int, p1 *models.User) (bool, error)
-	FindAccountByName(p0 string, p1 *models.User) (bool, error)
-	UpdateAccount(p0 int, p1 *models.User) (int64, error)
-	FindGroupsByPathPattern(p0 int, p1 string, p2 *[]*models.Group) error
-	FindRecentUserEmails(p0 int, p1 time.Time, p2 *[]models.UserEmail) error
-	FindAPOPAccount(p0 string, p1 *models.User) (bool, error)
-	FindAdministrators(p0 *[]*models.User) error
-	ListSavedEmailOwners(p0 int64, p1 *[]*models.UserEmail) error
+	UserPersistence
+	EmailPersistence
+	GroupPersistence
+	MailboxStatsPersistence
+	RulePersistence
 }
 
 var Persistence PersistencePort
