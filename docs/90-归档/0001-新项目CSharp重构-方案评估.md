@@ -84,9 +84,9 @@
 | 未初始化跳转 | body `errorNo=402` → 前端跳 `/setup` | `fe/src/utils/axios.js:40-47` |
 | 无权限 | body `errorNo=405` | `server/dto/response/response.go:11` |
 | 语言 | 请求头 `Lang` 驱动错误文案 | `fe/src/utils/axios.js:12` |
-| 会话 | 浏览器自动携带 cookie（scs），前端代码中无 `Token`、`Cookie`、`withCredentials` | `server/internal/api/http/http_routes.go:202-215` |
+| 会话 | 浏览器自动携带 cookie（scs），前端代码中无 `Token`、`Cookie`、`withCredentials` | `server/internal/api/http/routes.go:202-215` |
 | 路由规模 | 运行态 28 条；引导期 9 个步骤动作 | `docs/20-功能/02-功能与接口清单.md:14-30` |
-| 外部 API Token | `{account}:md5(md5(md5(password+"pmail")+"pmail2023")+timestamp):{timestamp}`，硬编码盐 | `server/internal/api/http/http_routes.go:244` |
+| 外部 API Token | `{account}:md5(md5(md5(password+"pmail")+"pmail2023")+timestamp):{timestamp}`，硬编码盐 | `server/internal/api/http/routes.go:244` |
 
 前端不使用 Token 方案，因此新项目没有兼容负担，也不应继承该方案。
 
@@ -97,11 +97,11 @@
 | 项 | 现状 | 证据 |
 | --- | --- | --- |
 | 钩子点 | 7 个：`SendBefore`、`SendAfter`、`ReceiveParseBefore`、`ReceiveParseAfter`、`ReceiveSaveAfter`、`GetName`、`SettingsHtml` | `server/hooks/contract/hook.go` |
-| 传输 | HTTP over Unix socket，JSON 序列化 | `server/hooks/contract/hook.go`、`server/internal/infra/plugin/plugin_manager.go` |
-| 进程模型 | 主程序扫描 `./plugins` 拉起独立进程，退出时从 `HookList` 移除 | `server/internal/infra/plugin/plugin_manager.go` |
+| 传输 | HTTP over Unix socket，JSON 序列化 | `server/hooks/contract/hook.go`、`server/internal/infra/plugin/manager.go` |
+| 进程模型 | 主程序扫描 `./plugins` 拉起独立进程，退出时从 `HookList` 移除 | `server/internal/infra/plugin/manager.go` |
 | `wechat_push` | 出站 HTTPS（微信接口）、读取主配置、读写插件配置、设置页 HTML | `server/hooks/wasm_plugins/cmd/wechat_push/main.go`、`:119`、`:183-195` |
 | `spam_block` | 出站 HTTP、插件配置读写、改写邮件状态、静态资源、离线训练管线 | `server/hooks/wasm_plugins/cmd/spam_block/main.go`、`:189-218` |
-| 已知缺陷 | 插件进程退出后 `HookList` 曾残留死句柄，后续修复为显式移除 | `server/internal/infra/plugin/plugin_manager.go` |
+| 已知缺陷 | 插件进程退出后 `HookList` 曾残留死句柄，后续修复为显式移除 | `server/internal/infra/plugin/manager.go` |
 
 ### 2.5 工具链现状
 
@@ -471,12 +471,12 @@ $ node ~/.agents/skills/requirement-docs/scripts/check-docs.mjs \
 | 主题 | 位置 |
 | --- | --- |
 | 插件契约与传输方式 | `server/hooks/contract/hook.go`、`server/hooks/contract/hook.go` |
-| 插件宿主与死句柄清理 | `server/internal/infra/plugin/plugin_manager.go` |
+| 插件宿主与死句柄清理 | `server/internal/infra/plugin/manager.go` |
 | 数据库引擎与自动建表 | `server/internal/infra/persistence/database.go:97-126` |
-| DNS-01 仅呈现 TXT | `server/internal/infra/certificate/certificate_challenge.go:91-103` |
+| DNS-01 仅呈现 TXT | `server/internal/infra/certificate/challenge.go:91-103` |
 | 响应包裹与业务码 | `server/dto/response/response.go:8-20` |
 | 前端契约消费 | `fe/src/utils/axios.js:12`、`fe/src/utils/axios.js:30-47` |
-| Token 口径 | `server/internal/api/http/http_routes.go:244` |
+| Token 口径 | `server/internal/api/http/routes.go:244` |
 | XSS 语料 | `server/dto/parsemail/email_xss_test.go` |
 
 ### 9.2 外部资料

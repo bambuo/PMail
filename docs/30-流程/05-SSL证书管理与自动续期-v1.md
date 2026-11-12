@@ -32,7 +32,7 @@
 | `1` | 手动上传 | 只校验路径存在，直接完成引导；`HttpsEnabled` 被置 2 | 每 24 小时比对外证书过期时间，变化则重启加载 |
 | `2` | 自动，DNS-01 | 部署向导调用 `GenSSL(false)`，需手工加 TXT | 同 `0`，挑战超时 60 分钟 |
 
-证据：`server/internal/config/config.go:101-103`、`server/internal/infra/certificate/certificate.go`、`server/internal/api/http/http_setup.go`。
+证据：`server/internal/config/config.go:101-103`、`server/internal/infra/certificate/certificate.go`、`server/internal/api/http/setup.go`。
 
 ## 4. 流程图
 
@@ -108,7 +108,7 @@ stateDiagram-v2
 
 | 场景 | 行为 | 证据 |
 | --- | --- | --- |
-| 证书文件不存在且 `isInit=true` | SMTP 465/587 启动 `log.Fatal`；POP3/IMAP `panic` | `smtp_server/internal/api/smtp/smtp_server.go:42,59,87`、`pop3_server/internal/api/pop3/listener.go:16`、`imap_server/internal/api/imap/imap_server.go:34` |
+| 证书文件不存在且 `isInit=true` | SMTP 465/587 启动 `log.Fatal`；POP3/IMAP `panic` | `smtp_server/internal/api/smtp/server.go:42,59,87`、`pop3_server/internal/api/pop3/listener.go:16`、`imap_server/internal/api/imap/server.go:34` |
 | 引导端口非 80 | HTTP-01 无法完成，签发失败 | `setup_server.go:36-50` |
 | 签发失败 | `Obtain` 返回错误后 `panic`（在异步 goroutine 内） | `ssl.go:216-218` |
 | 证书读不出/已过期 | `Update` 视为需要续期 | `ssl.go:273-330` |
@@ -128,7 +128,7 @@ stateDiagram-v2
 | 剩余天数检查 | `ssl.go:273-308` |
 | 续期入口 | `ssl.go:309-340` |
 | 定时任务分支 | `server/internal/bootstrap/scheduler.go` |
-| HTTP 挑战内存映射 | `server/internal/infra/certificate/certificate_challenge.go`、`server/internal/api/http/http_setup.go` |
+| HTTP 挑战内存映射 | `server/internal/infra/certificate/challenge.go`、`server/internal/api/http/setup.go` |
 
 ## 9. 实现风险
 

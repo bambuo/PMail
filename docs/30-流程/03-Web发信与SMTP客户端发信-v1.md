@@ -168,7 +168,7 @@ stateDiagram-v2
 | Web 发信控制器 | `server/internal/api/http/email_handler.go` |
 | SMTP 发信分支 | `server/internal/app/email_receive.go` |
 | 投递与审计 | `server/internal/app/email_send.go` |
-| SMTP AUTH | `server/internal/api/smtp/smtp_action.go` |
+| SMTP AUTH | `server/internal/api/smtp/action.go` |
 | MX 分组与降级 | `server/pkg/send/send.go:94-230` |
 | 单 MX 端口序列 | `server/pkg/send/send.go:212-270`（`tryDeliverToMX`） |
 | DKIM 签名 | `server/dto/parsemail/dkim.go:69-84`、`email.go:602-720` |
