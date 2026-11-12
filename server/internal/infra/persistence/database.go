@@ -1,8 +1,13 @@
 package persistence
 
 import (
+	stderrors "errors"
 	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/Jinnrry/pmail/internal/config"
 	"github.com/Jinnrry/pmail/models"
@@ -11,6 +16,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
+	"modernc.org/sqlite"
 	"xorm.io/xorm"
 )
 
@@ -174,4 +180,180 @@ func databaseFixHistoryData(engine *xorm.Engine) {
 	}
 	log.Infof("Sync History Data Finished. Num: %d", len(emails))
 
+}
+
+const (
+	databaseSqliteBusyTimeoutMilliseconds = 1000
+	databaseTransactionAttempts           = 3
+	databaseTransactionInitialBackoff     = 50 * time.Millisecond
+)
+
+// Transaction runs fn atomically. SQLite BUSY and LOCKED failures retry the
+// entire transaction, so fn must contain only work that is safe to repeat.
+func WithDatabaseTransaction(engine *xorm.Engine, fn func(*xorm.Session) error) error {
+	return databaseTransactionWithRetry(engine, databaseTransactionAttempts, databaseTransactionInitialBackoff, fn)
+}
+
+func databaseTransactionWithRetry(engine *xorm.Engine, attempts int, initialBackoff time.Duration, fn func(*xorm.Session) error) error {
+	if attempts < 1 {
+		attempts = 1
+	}
+
+	var err error
+	for attempt := 1; attempt <= attempts; attempt++ {
+		var retrySafe bool
+		err, retrySafe = databaseRunTransactionAttempt(engine, fn)
+		if err == nil {
+			return nil
+		}
+		if !retrySafe || engine.DriverName() != "sqlite" || !DatabaseIsSQLiteBusyOrLocked(err) || attempt == attempts {
+			return err
+		}
+		time.Sleep(initialBackoff << (attempt - 1))
+	}
+	return err
+}
+
+func databaseRunTransaction(engine *xorm.Engine, fn func(*xorm.Session) error) error {
+	err, _ := databaseRunTransactionAttempt(engine, fn)
+	return err
+}
+
+func databaseRunTransactionAttempt(engine *xorm.Engine, fn func(*xorm.Session) error) (error, bool) {
+	session := engine.NewSession()
+	defer session.Close()
+
+	if err := session.Begin(); err != nil {
+		return fmt.Errorf("begin transaction: %w", err), true
+	}
+	if err := fn(session); err != nil {
+		if rollbackErr := session.Rollback(); rollbackErr != nil {
+			return stderrors.Join(err, fmt.Errorf("rollback transaction: %w", rollbackErr)), false
+		}
+		return err, true
+	}
+	if err := session.Commit(); err != nil {
+		// modernc.org/sqlite v1.46.1 and newer roll back internally when COMMIT
+		// fails, leaving the connection clean and the transaction safe to retry.
+		return fmt.Errorf("commit transaction: %w", err), true
+	}
+	return nil, false
+}
+
+// IsSQLiteBusyOrLocked classifies SQLite errors by result code, including
+// extended BUSY and LOCKED codes. Error message text is intentionally ignored.
+func DatabaseIsSQLiteBusyOrLocked(err error) bool {
+	var sqliteErr *sqlite.Error
+	if !stderrors.As(err, &sqliteErr) {
+		return false
+	}
+	primaryCode := sqliteErr.Code() & 0xff
+	return primaryCode == 5 || primaryCode == 6
+}
+
+func databaseSqliteDSNWithReliabilityOptions(dsn string) (string, error) {
+	dsnPrefix, rawQuery, hasQuery := strings.Cut(dsn, "?")
+	query, err := url.ParseQuery(rawQuery)
+	if err != nil {
+		return "", fmt.Errorf("parse SQLite DSN: %w", err)
+	}
+
+	pragmas := query["_pragma"]
+	timeoutIndex := -1
+	for index, pragma := range pragmas {
+		if databaseSqlitePragmaName(pragma) == "busy_timeout" {
+			if timeoutIndex >= 0 {
+				return "", fmt.Errorf("parse SQLite DSN: multiple busy_timeout pragmas are ambiguous")
+			}
+			timeoutIndex = index
+		}
+	}
+	if timeoutIndex >= 0 {
+		requested, err := databaseSqliteBusyTimeoutValue(pragmas[timeoutIndex])
+		if err != nil {
+			return "", fmt.Errorf("parse SQLite busy_timeout pragma %q: %w", pragmas[timeoutIndex], err)
+		}
+		if requested <= databaseSqliteBusyTimeoutMilliseconds {
+			return dsn, nil
+		}
+
+		log.Warnf(
+			"SQLite busy_timeout requested %dms exceeds the %dms maximum; using %dms",
+			requested,
+			databaseSqliteBusyTimeoutMilliseconds,
+			databaseSqliteBusyTimeoutMilliseconds,
+		)
+		pragmas[timeoutIndex] = fmt.Sprintf("busy_timeout(%d)", databaseSqliteBusyTimeoutMilliseconds)
+		query["_pragma"] = pragmas
+		return dsnPrefix + "?" + query.Encode(), nil
+	}
+
+	separator := "?"
+	if hasQuery {
+		separator = "&"
+		if strings.HasSuffix(dsn, "?") || strings.HasSuffix(dsn, "&") {
+			separator = ""
+		}
+	}
+	option := url.Values{"_pragma": {fmt.Sprintf("busy_timeout(%d)", databaseSqliteBusyTimeoutMilliseconds)}}.Encode()
+	return dsn + separator + option, nil
+}
+
+func databaseSqliteBusyTimeoutValue(pragma string) (int64, error) {
+	const name = "busy_timeout"
+
+	normalized := strings.TrimSpace(pragma)
+	if len(normalized) < len(name) || !strings.EqualFold(normalized[:len(name)], name) {
+		return 0, fmt.Errorf("not a busy_timeout pragma")
+	}
+	remainder := strings.TrimSpace(normalized[len(name):])
+
+	var valueText string
+	switch {
+	case strings.HasPrefix(remainder, "("):
+		if !strings.HasSuffix(remainder, ")") {
+			return 0, fmt.Errorf("expected busy_timeout(<milliseconds>)")
+		}
+		valueText = strings.TrimSpace(remainder[1 : len(remainder)-1])
+	case strings.HasPrefix(remainder, "="):
+		valueText = strings.TrimSpace(remainder[1:])
+	default:
+		return 0, fmt.Errorf("expected busy_timeout(<milliseconds>) or busy_timeout = <milliseconds>")
+	}
+	if valueText == "" {
+		return 0, fmt.Errorf("timeout value is empty")
+	}
+
+	timeout, err := strconv.ParseInt(valueText, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid timeout value %q: %w", valueText, err)
+	}
+	return timeout, nil
+}
+
+func databaseSqlitePragmaName(pragma string) string {
+	normalized := strings.ToLower(strings.TrimSpace(pragma))
+	if end := strings.IndexFunc(normalized, func(character rune) bool {
+		return character == '(' || character == '=' || unicode.IsSpace(character)
+	}); end >= 0 {
+		normalized = normalized[:end]
+	}
+	return normalized
+}
+
+// PersistenceRepository 是持久化适配器，所有查询使用注入的引擎。
+type PersistenceRepository struct {
+	engine *xorm.Engine
+}
+
+func New(engine *xorm.Engine) *PersistenceRepository {
+	return &PersistenceRepository{engine: engine}
+}
+
+func (r *PersistenceRepository) SetEngine(engine *xorm.Engine) {
+	r.engine = engine
+}
+
+func (r *PersistenceRepository) db() *xorm.Engine {
+	return r.engine
 }

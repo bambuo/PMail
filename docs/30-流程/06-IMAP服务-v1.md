@@ -14,7 +14,7 @@
 2. 邮箱（mailbox）概念如何映射到 PMail 的“内置默认箱 + 用户自定义分组”模型，哪些映射是真实数据、哪些是硬编码；
 3. IMAP 的 IDLE 推送由谁触发、在什么条件下会推、推出去的内容是什么。
 
-覆盖范围：`server/internal/api/` 全部会话文件、`server/internal/app/group_service.go`、`server/internal/app/email_query.go`、`server/internal/app/email_detail.go`、`server/internal/app/email_delete.go` 中被 IMAP 复用的部分，以及 `server/internal/app/email_receive.go` 中的 IDLE 触发点。不覆盖 SMTP 投递细节（见 [02 收信处理](./02-收信处理-v1.md)、[03 Web 发信与 SMTP 客户端发信](./03-Web发信与SMTP客户端发信-v1.md)）。
+覆盖范围：`server/internal/api/` 全部会话文件、`server/internal/app/group_service.go`、`server/internal/app/email_query.go`、`server/internal/app/email_service.go` 中被 IMAP 复用的部分，以及 `server/internal/app/email_receive.go` 中的 IDLE 触发点。不覆盖 SMTP 投递细节（见 [02 收信处理](./02-收信处理-v1.md)、[03 Web 发信与 SMTP 客户端发信](./03-Web发信与SMTP客户端发信-v1.md)）。
 
 ## 2. 参与角色与前置条件
 
@@ -29,19 +29,19 @@
 前置条件：
 
 - 服务端已初始化（`config.IsInit == true`，即 `config.json` 中 `domain` 非空且 `isInit` 为真，`server/internal/config/config.go:158`）；初始化前 IMAP 服务不会被启动（`server/internal/bootstrap/bootstrap.go`、`:66`）。
-- 运行目录 `config/ssl/` 下存在可用的证书与私钥（源码开发时即 `server/config/ssl/`），否则 `newIMAPServer` 直接 `panic`（`server/internal/api/imap/imap_listener.go`）。
+- 运行目录 `config/ssl/` 下存在可用的证书与私钥（源码开发时即 `server/config/ssl/`），否则 `newIMAPServer` 直接 `panic`（`server/internal/api/imap/imap_server.go`）。
 - 用户 `disabled = 0`，密码按 `password.Encode`（两次 md5 加盐）存储，算法见 [08 Web 与协议鉴权](./08-Web与协议鉴权-v1.md)。
 
 ## 3. 端口与能力协商
 
 | 项 | 实现 | 证据 |
 | --- | --- | --- |
-| 监听端口 | 仅 `:993` 隐式 TLS；**不提供 143 明文端口，也不提供 STARTTLS**（注释原话：“不加密的代码就懒得写了”） | `server/internal/api/imap/imap_listener.go` |
-| CAPA 能力集 | 只有 `IMAP4rev1`、`IDLE` 两个 | `server/internal/api/imap/imap_listener.go` |
-| 明文认证 | `InsecureAuth: false` | `server/internal/api/imap/imap_listener.go` |
-| 调试输出 | `config.logLevel == "debug"` 时把协议原文打到 stdout | `server/internal/api/imap/imap_listener.go` |
+| 监听端口 | 仅 `:993` 隐式 TLS；**不提供 143 明文端口，也不提供 STARTTLS**（注释原话：“不加密的代码就懒得写了”） | `server/internal/api/imap/imap_server.go` |
+| CAPA 能力集 | 只有 `IMAP4rev1`、`IDLE` 两个 | `server/internal/api/imap/imap_server.go` |
+| 明文认证 | `InsecureAuth: false` | `server/internal/api/imap/imap_server.go` |
+| 调试输出 | `config.logLevel == "debug"` 时把协议原文打到 stdout | `server/internal/api/imap/imap_server.go` |
 | 启动时机 | `bootstrap.Run` 中 `go api.StartIMAPS()` | `server/internal/bootstrap/bootstrap.go` |
-| 单测 | 用临时端口 `tls.Listen("tcp","127.0.0.1:0",...)` + `imapclient` 做端到端验证 | `server/internal/api/imap/imap_listener_test.go` |
+| 单测 | 用临时端口 `tls.Listen("tcp","127.0.0.1:0",...)` + `imapclient` 做端到端验证 | `server/test/e2e/imap_test.go` |
 
 能力集只声明两个扩展，意味着：没有 `UIDPLUS`、没有 `MOVE`、`IDLE` 之外的扩展一律不出现；`serverSession` 虽然实现了 `Move`/`Create`/`Rename` 等方法，但客户端只有在使用不带扩展的 `COPY`+`STORE \Deleted`+`EXPUNGE` 时才一定可用，是否下发 `MOVE` 取决于客户端是否在未协商扩展的情况下自行尝试。
 
@@ -88,7 +88,7 @@
 
 这些名字只存在于代码与协议层：`group` 表里**没有**这五行的记录，`user_email.group_id = 0` 才表示“未归档到自定义分组”；默认箱完全靠 `status` 字段区分。`UIDVALIDITY` 取上述魔数（`server/internal/app/group_service.go`、`:224`）。
 
-`LIST` 对默认箱的返回是写死的五条记录（`server/internal/api/imap/imap_session_list.go`），常量、属性与邮件内容无关；`List` 在 `ref == "" && len(patterns) == 0` 时会额外下发一条 `[PMail]`（`NoSelect|HasChildren`）的装饰项（`session_list.go:94-100`）。
+`LIST` 对默认箱的返回是写死的五条记录（`server/internal/api/imap/imap_session_mailbox.go`），常量、属性与邮件内容无关；`List` 在 `ref == "" && len(patterns) == 0` 时会额外下发一条 `[PMail]`（`NoSelect|HasChildren`）的装饰项（`session_list.go:94-100`）。
 
 ### 5.2 用户自定义分组
 
@@ -300,36 +300,36 @@ stateDiagram-v2
 | `CLOSE` | 空实现，不执行隐式 EXPUNGE | `server.go:56-58` |
 | 推送时用户无 IDLE 连接 | `IdleNotice` 静默返回 nil | `session_idle.go:63-68` |
 | `Expunge` 未带 UID 且无 `\Deleted` 标记 | 直接返回 nil（无 untagged EXPUNGE 响应） | `session_expunge.go:12-14` |
-| `DelByUID` 找不到目标行 | `Warn` 后 `return nil`，且**不 Commit** 直接返回 | `server/internal/app/email_delete.go` |
+| `DelByUID` 找不到目标行 | `Warn` 后 `return nil`，且**不 Commit** 直接返回 | `server/internal/app/email_service.go` |
 
 ## 10. 证据索引
 
 | 主题 | 文件:行号 |
 | --- | --- |
-| 993 隐式 TLS、CAPA 能力、InsecureAuth | `server/internal/api/imap/imap_listener.go` |
+| 993 隐式 TLS、CAPA 能力、InsecureAuth | `server/internal/api/imap/imap_server.go` |
 | 会话结构、状态常量、空实现（Append/Subscribe/Close） | `server/internal/api/imap/imap_server.go` |
-| 登录与 `@` 后缀截断 | `server/internal/api/imap/imap_session_login.go` |
-| LIST 硬编码五箱、通配匹配、层级名拼接 | `server/internal/api/imap/imap_session_list.go` |
-| CREATE 逐级建组 | `server/internal/api/imap/imap_session_create.go` |
-| RENAME（默认箱拒绝、只改末级名） | `server/internal/api/imap/imap_session_rename.go` |
-| DELETE 分组（连带子分组） | `server/internal/api/imap/imap_session_delete.go`、`server/internal/app/group_service.go` |
-| SELECT 与 status/flags 构造 | `server/internal/api/imap/imap_session_select.go` |
-| STATUS 四类统计 | `server/internal/api/imap/imap_session_status.go` |
-| FETCH 的 ENVELOPE/BODYSTRUCTURE/头字段 | `server/internal/api/imap/imap_session_fetch.go` |
-| SEARCH 委派与 ESEARCH min/max | `server/internal/api/imap/imap_session_search.go`、`server/internal/app/email_search.go` |
-| STORE 的已读与 \Deleted 处理 | `server/internal/api/imap/imap_session_store.go` |
-| Move 默认箱/自定义分组分支 | `server/internal/api/imap/imap_session_move.go` |
-| Copy 复制语义（新插一行 `user_email`） | `server/internal/api/imap/imap_session_copy.go` |
-| EXPUNGE 与 `DeleteByUID` | `server/internal/api/imap/imap_session_expunge.go`、`server/internal/app/email_delete.go` |
+| 登录与 `@` 后缀截断 | `server/internal/api/imap/imap_session.go` |
+| LIST 硬编码五箱、通配匹配、层级名拼接 | `server/internal/api/imap/imap_session_mailbox.go` |
+| CREATE 逐级建组 | `server/internal/api/imap/imap_session.go` |
+| RENAME（默认箱拒绝、只改末级名） | `server/internal/api/imap/imap_session.go` |
+| DELETE 分组（连带子分组） | `server/internal/api/imap/imap_session.go`、`server/internal/app/group_service.go` |
+| SELECT 与 status/flags 构造 | `server/internal/api/imap/imap_session.go` |
+| STATUS 四类统计 | `server/internal/api/imap/imap_session.go` |
+| FETCH 的 ENVELOPE/BODYSTRUCTURE/头字段 | `server/internal/api/imap/imap_session_message.go` |
+| SEARCH 委派与 ESEARCH min/max | `server/internal/api/imap/imap_session_message.go`、`server/internal/app/email_search.go` |
+| STORE 的已读与 \Deleted 处理 | `server/internal/api/imap/imap_session.go` |
+| Move 默认箱/自定义分组分支 | `server/internal/api/imap/imap_session_mailbox.go` |
+| Copy 复制语义（新插一行 `user_email`） | `server/internal/api/imap/imap_session_mailbox.go` |
+| EXPUNGE 与 `DeleteByUID` | `server/internal/api/imap/imap_session_mailbox.go`、`server/internal/app/email_service.go` |
 | IDLE 登记/注销与 `IdleNotice` | `server/internal/api/imap/imap_session_idle.go` |
-| POLL（NOOP）实现 | `server/internal/api/imap/imap_session_poll.go` |
-| NAMESPACE | `server/internal/api/imap/imap_session_namespace.go` |
+| POLL（NOOP）实现 | `server/internal/api/imap/imap_session.go` |
+| NAMESPACE | `server/internal/api/imap/imap_session.go` |
 | IDLE 触发点（SMTP 入站） | `server/internal/app/email_receive.go` |
 | 默认箱判定与魔数 | `server/internal/app/group_service.go`、`server/models/group.go:11-33` |
 | 默认箱统计 SQL | `server/internal/app/group_service.go` |
 | 默认箱移动语义 | `server/internal/app/group_service.go` |
 | IMAP 列表 SQL（窗口序号 `ROW_NUMBER()`）与 MySQL 8 依赖 | `server/internal/app/email_query.go` |
-| 端到端用例（CAPA/LOGIN/LIST/CREATE/RENAME/DELETE/SELECT/STATUS/FETCH/STORE/EXPUNGE/SEARCH/MOVE/COPY/IDLE） | `server/internal/api/imap/imap_listener_test.go` |
+| 端到端用例（CAPA/LOGIN/LIST/CREATE/RENAME/DELETE/SELECT/STATUS/FETCH/STORE/EXPUNGE/SEARCH/MOVE/COPY/IDLE） | `server/test/e2e/imap_test.go` |
 
 ## 11. 实现风险
 

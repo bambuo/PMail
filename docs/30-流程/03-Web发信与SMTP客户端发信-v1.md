@@ -28,7 +28,7 @@
 
 | 维度 | Web 发信 `/api/email/send` | SMTP 客户端发信（465/587） |
 | --- | --- | --- |
-| 入口 | `server/internal/api/email_send_handler.go` | `server/internal/app/email_receive.go` → `deliverOutgoingEmail` |
+| 入口 | `server/internal/api/http/email_handler.go` | `server/internal/app/email_receive.go` → `deliverOutgoingEmail` |
 | 认证 | scs session / Token 头 | SMTP AUTH PLAIN/LOGIN |
 | 发件人校验 | 校验域名归属，非管理员必须本人 | 校验 `From` 账号等于登录账号或管理员 |
 | 落库时机 | 先插入 `email(status=1)` 并立即返回 200 | 先插入 `email(status=6 投递中)`，投递后回写 |
@@ -150,7 +150,7 @@ stateDiagram-v2
 | 场景 | 行为 | 证据 |
 | --- | --- | --- |
 | 未登录 | `errorNo=403` 登录已失效 | `https_server.go:131-136` |
-| From 为空 | 补为 `{当前账号}@{Domains[0]}` | `server/internal/api/email_send_handler.go` |
+| From 为空 | 补为 `{当前账号}@{Domains[0]}` | `server/internal/api/http/email_handler.go` |
 | 标题/收件人为空 | 返回参数错误 | `send.go:88-107` |
 | 附件 base64 解码失败 | 返回 `att_err` 文案 | `send.go:148-157` |
 | `email` 插入失败 | 返回 `send_fail` | `send.go:200-208` |
@@ -158,16 +158,16 @@ stateDiagram-v2
 | 5xx 永久错误 | 停止尝试下一个 MX，直接判失败 | `send.go:186-190, 210-215` |
 | 全部 MX 尝试失败 | 汇总失败地址返回 | `send.go:196-204` |
 | 投递失败回写失败 | SMTP 客户端链路保留 pending 状态并打印 CRITICAL 日志，不返回 451（避免重复投递） | `audit_persistence.go:48-58` |
-| Web 异步失败 | 更新 status=2 并插入失败态 `user_email` | `server/internal/api/email_send_handler.go` |
+| Web 异步失败 | 更新 status=2 并插入失败态 `user_email` | `server/internal/api/http/email_handler.go` |
 | 插件 `SendBefore` 返回空邮件 | SMTP 链路中 `email == nil` 时直接返回成功，静默丢弃 | `read_content.go:90-92` |
 
 ## 8. 证据索引
 
 | 结论 | 证据 |
 | --- | --- |
-| Web 发信控制器 | `server/internal/api/email_send_handler.go` |
+| Web 发信控制器 | `server/internal/api/http/email_handler.go` |
 | SMTP 发信分支 | `server/internal/app/email_receive.go` |
-| 投递与审计 | `server/internal/app/email_delivery.go` |
+| 投递与审计 | `server/internal/app/email_send.go` |
 | SMTP AUTH | `server/internal/api/smtp/smtp_action.go` |
 | MX 分组与降级 | `server/pkg/send/send.go:94-230` |
 | 单 MX 端口序列 | `server/pkg/send/send.go:212-270`（`tryDeliverToMX`） |

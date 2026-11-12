@@ -1,6 +1,8 @@
 package persistence
 
-import "github.com/Jinnrry/pmail/models"
+import (
+	"github.com/Jinnrry/pmail/models"
+)
 
 func (r *PersistenceRepository) FindLocalForwardAccount(account string, user *models.User) (bool, error) {
 	return r.db().Table(&models.User{}).Where("LOWER(account)=LOWER(?) and disabled=0", account).Get(user)
