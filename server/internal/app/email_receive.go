@@ -42,7 +42,7 @@ func (s *MailSubmission) Receive(r io.Reader) error {
 	log.WithContext(ctx).Debugf("%s", string(emailData))
 
 	log.WithContext(ctx).Debugf("开始执行插件ReceiveParseBefore！")
-	for _, hook := range AllHooks() {
+	for _, hook := range s.Service.hooks() {
 		if hook == nil {
 			continue
 		}
@@ -72,7 +72,7 @@ func (s *MailSubmission) Receive(r io.Reader) error {
 		}
 
 		log.WithContext(ctx).Debugf("开始执行插件SendBefore！")
-		for _, hook := range AllHooks() {
+		for _, hook := range s.Service.hooks() {
 			if hook == nil {
 				continue
 			}
@@ -93,7 +93,7 @@ func (s *MailSubmission) Receive(r io.Reader) error {
 		// DKIM校验
 		dkimStatus = parsemail.Check(ctx, bytes.NewReader(emailData))
 
-		SPFStatus = CheckSPF(s.RemoteAddress.String(), email.Sender, email.Sender.EmailAddress)
+		SPFStatus = s.Service.checkSPF(s.RemoteAddress.String(), email.Sender, email.Sender.EmailAddress)
 
 		_, formDomain := email.From.GetDomainAccount()
 		spoofed := domain.IsSpoofedSender(array.InArray(formDomain, config.Instance.Domains), SPFStatus)
@@ -103,7 +103,7 @@ func (s *MailSubmission) Receive(r io.Reader) error {
 		email.Authentication = parsemail.NewEmailAuthentication(SPFStatus, dkimStatus)
 
 		log.WithContext(ctx).Debugf("开始执行插件ReceiveParseAfter！")
-		for _, hook := range AllHooks() {
+		for _, hook := range s.Service.hooks() {
 			if hook == nil {
 				continue
 			}
@@ -115,7 +115,7 @@ func (s *MailSubmission) Receive(r io.Reader) error {
 		// 伪造邮件状态必须覆盖插件分类结果，保持原有处理优先级。
 		email.Status = domain.ReceiveStatus(email.Status, int(consts.EmailStatusDel), spoofed)
 
-		users, dbEmail, saveErr := SaveEmail(ctx, len(emailData), email, 0, 0, s.To, SPFStatus, dkimStatus)
+		users, dbEmail, saveErr := s.Service.Save(ctx, len(emailData), email, 0, 0, s.To, SPFStatus, dkimStatus)
 		if saveErr != nil {
 			log.WithContext(ctx).Errorf("CRITICAL audit_event=initial_persist_failed direction=inbound msg_id=%q error=%v", email.MsgID, saveErr)
 			return smtpLocalPersistenceSMTPError()
@@ -125,10 +125,9 @@ func (s *MailSubmission) Receive(r io.Reader) error {
 			log.WithContext(ctx).Debugf("开始执行邮件规则！")
 			for _, user := range users {
 				// 执行邮件规则
-				rs := RuleGetAllRules(ctx, user.ID)
-				for _, r := range rs {
-					if RuleMatchRule(ctx, r, email) {
-						RuleDoRule(ctx, r, email, user, emailData)
+				for _, rule := range s.Service.rules.GetAll(ctx, user.ID) {
+					if s.Service.rules.Match(ctx, rule, email) {
+						s.Service.rules.Apply(ctx, rule, email, user, emailData)
 					}
 				}
 			}
@@ -136,12 +135,12 @@ func (s *MailSubmission) Receive(r io.Reader) error {
 
 		log.WithContext(ctx).Debugf("开始执行插件ReceiveSaveAfter！")
 		var ue []*models.UserEmail
-		err = Persistence.ListSavedEmailOwners(email.MessageId, &ue)
+		err = s.Service.emails.ListSavedEmailOwners(email.MessageId, &ue)
 		if err != nil {
 			log.WithContext(ctx).Errorf("sql Error :%+v", err)
 		}
 		as3 := async.New(ctx)
-		for _, hook := range AllHooks() {
+		for _, hook := range s.Service.hooks() {
 			if hook == nil {
 				continue
 			}
@@ -154,7 +153,7 @@ func (s *MailSubmission) Receive(r io.Reader) error {
 
 		// IDLE命令通知
 		for _, user := range users {
-			NotifyMailbox(ctx, user.ID, dbEmail)
+			s.Service.notifyMailbox(ctx, user.ID, dbEmail)
 		}
 
 	}
@@ -162,7 +161,7 @@ func (s *MailSubmission) Receive(r io.Reader) error {
 	return nil
 }
 
-func SaveEmail(ctx *context.Context, size int, email *parsemail.Email, sendUserID int, emailType int, reallyTo []string, SPFStatus, dkimStatus bool) ([]*models.User, *models.Email, error) {
+func (s *EmailService) Save(ctx *context.Context, size int, email *parsemail.Email, sendUserID int, emailType int, reallyTo []string, SPFStatus, dkimStatus bool) ([]*models.User, *models.Email, error) {
 	if email == nil {
 		return nil, nil, oerrors.New("email is missing")
 	}
@@ -174,7 +173,7 @@ func SaveEmail(ctx *context.Context, size int, email *parsemail.Email, sendUserI
 		dkimStatus = email.Authentication.DKIMPassed
 	}
 
-	users, drop, err := smtpResolveIncomingUsers(ctx, email, emailType, reallyTo, SPFStatus, dkimStatus)
+	users, drop, err := s.resolveIncomingUsers(ctx, email, emailType, reallyTo, SPFStatus, dkimStatus)
 	if err != nil || drop {
 		return users, nil, err
 	}
@@ -223,7 +222,7 @@ func SaveEmail(ctx *context.Context, size int, email *parsemail.Email, sendUserI
 	}
 
 	log.WithContext(ctx).Debugf("开始入库！")
-	saved, err := PersistInitialAudit(ctx, modelEmail, userIDs)
+	saved, err := s.audit.PersistInitialAudit(ctx, modelEmail, userIDs)
 	if err != nil {
 		return users, nil, err
 	}

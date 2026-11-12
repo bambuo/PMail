@@ -56,7 +56,16 @@ func (s *imapServerSession) Idle(w *imapserver.UpdateWriter, stop <-chan struct{
 	return nil
 }
 
-func IMAPIdleNotice(ctx *context.Context, userId int, email *models.Email) error {
+// IMAPIdleNotifier 收信后向保持 IDLE 的连接推送 EXISTS 更新。
+type IMAPIdleNotifier struct {
+	groups *app.GroupService
+}
+
+func NewIMAPIdleNotifier(groups *app.GroupService) *IMAPIdleNotifier {
+	return &IMAPIdleNotifier{groups: groups}
+}
+
+func (n *IMAPIdleNotifier) Notify(ctx *context.Context, userId int, email *models.Email) error {
 	if userId == 0 || email == nil || email.Id == 0 {
 		return nil
 	}
@@ -78,17 +87,7 @@ func IMAPIdleNotice(ctx *context.Context, userId int, email *models.Email) error
 	imapUserConnectsMu.Unlock()
 
 	for _, connect := range idleConnects {
-		connect.writer.WriteNumMessages(imapIdleNumMessages(ctx, userId, connect.mailbox))
+		connect.writer.WriteNumMessages(cast.ToUint32(n.groups.MessageCount(ctx, userId, connect.mailbox)))
 	}
 	return nil
-}
-
-func imapIdleNumMessages(ctx *context.Context, userId int, mailbox string) uint32 {
-	if mailbox == "" {
-		mailbox = "INBOX"
-	}
-	noticeCtx := *ctx
-	noticeCtx.UserID = userId
-	_, data := app.GetGroupStatus(&noticeCtx, mailbox, []string{"MESSAGES"})
-	return cast.ToUint32(data["MESSAGES"])
 }

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Jinnrry/pmail/config"
+	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/Jinnrry/pmail/pkg/ip"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -25,7 +26,7 @@ func StartSetupHTTP() {
 		panic(err)
 	}
 	mux.Handle("/", httpServerSPAHandler(fe))
-	mux.HandleFunc("/api/", httpServerContextIterceptor(HTTPSetup))
+	mux.HandleFunc("/api/", httpServerContextIterceptor((&SetupHandler{setup: app.SetupSvc}).Setup))
 	// 挑战请求类似这样 /.well-known/acme-challenge/QPyMAyaWw9s5JvV1oruyqWHG7OqkHMJEHPoUz2046KM
 	mux.HandleFunc("/.well-known/", HTTPAcmeChallenge)
 

@@ -14,8 +14,6 @@ import (
 	pcontext "github.com/Jinnrry/pmail/pkg/context"
 )
 
-var testPluginHandler = &PluginHandler{}
-
 type pluginListEnvelope struct {
 	ErrorNo  int                       `json:"errorNo"`
 	ErrorMsg string                    `json:"errorMsg"`
@@ -27,17 +25,16 @@ type pluginListResponsePayload struct {
 	Plugins []plugin.Info `json:"plugins"`
 }
 
-func setupPluginAPITest(t *testing.T) {
+func setupPluginAPITest(t *testing.T) *app.PluginPorts {
 	t.Helper()
 	oldCfg := config.Instance
 	config.Instance = &config.Config{PluginWasmEnabled: 1}
-	oldList, oldApprove, oldEnable, oldDisable, oldReject, oldReload :=
-		app.PluginList, app.PluginApprove, app.PluginEnable, app.PluginDisable, app.PluginReject, app.PluginReload
-	t.Cleanup(func() {
-		config.Instance = oldCfg
-		app.PluginList, app.PluginApprove, app.PluginEnable, app.PluginDisable, app.PluginReject, app.PluginReload =
-			oldList, oldApprove, oldEnable, oldDisable, oldReject, oldReload
-	})
+	t.Cleanup(func() { config.Instance = oldCfg })
+	return &app.PluginPorts{}
+}
+
+func pluginHandlerWith(ports app.PluginPorts) *PluginHandler {
+	return &PluginHandler{plugins: app.NewPluginService(ports)}
 }
 
 func TestPluginManageRoutesRegistered(t *testing.T) {
@@ -62,10 +59,9 @@ func TestPluginManageRoutesRegistered(t *testing.T) {
 
 func TestPluginManageListRequiresAdmin(t *testing.T) {
 	setupPluginAPITest(t)
-	app.PluginList = func() []plugin.Info { return nil }
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/plugin/manage/list", nil)
-	testPluginHandler.ManageList(&pcontext.Context{IsAdmin: false}, rec, req)
+	pluginHandlerWith(app.PluginPorts{}).ManageList(&pcontext.Context{IsAdmin: false}, rec, req)
 
 	var resp response.Response
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -77,13 +73,13 @@ func TestPluginManageListRequiresAdmin(t *testing.T) {
 }
 
 func TestPluginManageListOK(t *testing.T) {
-	setupPluginAPITest(t)
-	app.PluginList = func() []plugin.Info {
+	ports := setupPluginAPITest(t)
+	ports.List = func() []plugin.Info {
 		return []plugin.Info{{ID: "echo", Name: "Echo", Type: "wasm", Status: plugin.StatusPending}}
 	}
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/plugin/manage/list", nil)
-	testPluginHandler.ManageList(&pcontext.Context{IsAdmin: true}, rec, req)
+	pluginHandlerWith(*ports).ManageList(&pcontext.Context{IsAdmin: true}, rec, req)
 
 	var out pluginListEnvelope
 	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
@@ -98,7 +94,7 @@ func TestPluginManageApproveMethodGuard(t *testing.T) {
 	setupPluginAPITest(t)
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/plugin/manage/approve", nil)
-	testPluginHandler.ManageApprove(&pcontext.Context{IsAdmin: true}, rec, req)
+	pluginHandlerWith(app.PluginPorts{}).ManageApprove(&pcontext.Context{IsAdmin: true}, rec, req)
 
 	var resp response.Response
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -110,17 +106,17 @@ func TestPluginManageApproveMethodGuard(t *testing.T) {
 }
 
 func TestPluginManageApproveOK(t *testing.T) {
-	setupPluginAPITest(t)
+	ports := setupPluginAPITest(t)
 	var gotID string
 	var gotHooks, gotCaps []string
-	app.PluginApprove = func(ctx *pcontext.Context, id string, hooks, capabilities []string) error {
+	ports.Approve = func(ctx *pcontext.Context, id string, hooks, capabilities []string) error {
 		gotID, gotHooks, gotCaps = id, hooks, capabilities
 		return nil
 	}
 	body := `{"pluginId":"echo","hooks":["ReceiveParseAfter"],"capabilities":["email.read"]}`
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/plugin/manage/approve", strings.NewReader(body))
-	testPluginHandler.ManageApprove(&pcontext.Context{IsAdmin: true}, rec, req)
+	pluginHandlerWith(*ports).ManageApprove(&pcontext.Context{IsAdmin: true}, rec, req)
 
 	var resp response.Response
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -138,7 +134,7 @@ func TestPluginManageApproveBadBody(t *testing.T) {
 	setupPluginAPITest(t)
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/plugin/manage/approve", strings.NewReader("{"))
-	testPluginHandler.ManageApprove(&pcontext.Context{IsAdmin: true}, rec, req)
+	pluginHandlerWith(app.PluginPorts{}).ManageApprove(&pcontext.Context{IsAdmin: true}, rec, req)
 
 	var resp response.Response
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -150,15 +146,15 @@ func TestPluginManageApproveBadBody(t *testing.T) {
 }
 
 func TestPluginManageEnableOK(t *testing.T) {
-	setupPluginAPITest(t)
+	ports := setupPluginAPITest(t)
 	called := false
-	app.PluginEnable = func(ctx *pcontext.Context, id string) error {
+	ports.Enable = func(ctx *pcontext.Context, id string) error {
 		called = true
 		return nil
 	}
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/plugin/manage/enable", strings.NewReader(`{"pluginId":"echo"}`))
-	testPluginHandler.ManageEnable(&pcontext.Context{IsAdmin: true}, rec, req)
+	pluginHandlerWith(*ports).ManageEnable(&pcontext.Context{IsAdmin: true}, rec, req)
 
 	var resp response.Response
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -170,13 +166,13 @@ func TestPluginManageEnableOK(t *testing.T) {
 }
 
 func TestPluginManageEnableInvalidState(t *testing.T) {
-	setupPluginAPITest(t)
-	app.PluginEnable = func(ctx *pcontext.Context, id string) error {
+	ports := setupPluginAPITest(t)
+	ports.Enable = func(ctx *pcontext.Context, id string) error {
 		return plugin.ErrInvalidState
 	}
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/plugin/manage/enable", strings.NewReader(`{"pluginId":"echo"}`))
-	testPluginHandler.ManageEnable(&pcontext.Context{IsAdmin: true}, rec, req)
+	pluginHandlerWith(*ports).ManageEnable(&pcontext.Context{IsAdmin: true}, rec, req)
 
 	var resp response.Response
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {

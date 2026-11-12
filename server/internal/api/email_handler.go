@@ -18,8 +18,11 @@ import (
 	"github.com/spf13/cast"
 )
 
-// EmailHandler 邮件列表与操作接口，委托邮件用例层
-type EmailHandler struct{}
+// EmailHandler 邮件列表与操作接口，委托邮件读写用例服务
+type EmailHandler struct {
+	queries *app.EmailQueryService
+	emails  *app.EmailService
+}
 
 type emailHTTPEmailListResponse struct {
 	CurrentPage int                  `json:"current_page"`
@@ -80,7 +83,7 @@ func (h *EmailHandler) List(ctx *context.Context, w http.ResponseWriter, req *ht
 	}
 	_ = json.Unmarshal([]byte(retData.Tag), &tagInfo)
 
-	emailList, total := app.ListEmails(ctx, tagInfo, retData.Keyword, false, offset, retData.PageSize)
+	emailList, total := h.queries.List(ctx, tagInfo, retData.Keyword, false, offset, retData.PageSize)
 
 	for _, email := range emailList {
 		var sender EmailHTTPUser
@@ -137,7 +140,7 @@ func (h *EmailHandler) Detail(ctx *context.Context, w http.ResponseWriter, req *
 		return
 	}
 
-	email, err := app.EmailDetailGetEmailDetail(ctx, retData.ID, true)
+	email, err := h.queries.Detail(ctx, retData.ID, true)
 	if err != nil {
 		response.NewErrorResponse(response.ServerError, err.Error(), "").FPrint(w)
 		return
@@ -159,7 +162,7 @@ func (h *EmailHandler) Send(ctx *context.Context, w http.ResponseWriter, req *ht
 		response.NewErrorResponse(response.ParamsError, "params error", err.Error()).FPrint(w)
 		return
 	}
-	if err = app.SubmitEmail(ctx, input); err != nil {
+	if err = h.emails.Submit(ctx, input); err != nil {
 		if failure, ok := err.(*app.UseCaseError); ok {
 			response.NewErrorResponse(failure.Code, failure.Message, failure.Data).FPrint(w)
 		} else {
@@ -191,7 +194,7 @@ func (h *EmailHandler) MarkRead(ctx *context.Context, w http.ResponseWriter, req
 	}
 
 	for _, id := range reqData.IDs {
-		app.EmailDetailGetEmailDetail(ctx, id, true)
+		h.queries.Detail(ctx, id, true)
 	}
 
 	if err != nil {
@@ -223,7 +226,7 @@ func (h *EmailHandler) Delete(ctx *context.Context, w http.ResponseWriter, req *
 		return
 	}
 
-	err = app.EmailDeleteDelEmail(ctx, reqData.IDs, reqData.ForcedDel)
+	err = h.emails.Delete(ctx, reqData.IDs, reqData.ForcedDel)
 	if err != nil {
 		response.NewErrorResponse(response.ServerError, err.Error(), "").FPrint(w)
 		return
@@ -255,12 +258,12 @@ func (h *EmailHandler) Move(ctx *context.Context, w http.ResponseWriter, req *ht
 	}
 
 	if name, ok := models.GroupCodeToName[reqData.GroupId]; ok {
-		err := app.GroupMove2DefaultBox(ctx, reqData.IDs, name)
+		err := h.emails.MoveToDefaultBox(ctx, reqData.IDs, name)
 		if err != nil {
 			response.NewErrorResponse(response.ServerError, "Error", err.Error()).FPrint(w)
 			return
 		}
-	} else if !app.GroupMoveMailToGroup(ctx, reqData.IDs, reqData.GroupId) {
+	} else if !h.emails.MoveToGroup(ctx, reqData.IDs, reqData.GroupId) {
 		response.NewErrorResponse(response.ServerError, "Error", "").FPrint(w)
 		return
 	}
@@ -277,7 +280,7 @@ func (h *EmailHandler) GetAttachments(ctx *context.Context, w http.ResponseWrite
 	emailId := cast.ToInt(urlInfos[2])
 	cid := urlInfos[3]
 
-	contentType, content := app.AttachmentGetAttachments(ctx, emailId, cid)
+	contentType, content := h.queries.Attachments(ctx, emailId, cid)
 
 	if len(content) == 0 {
 		response.NewErrorResponse(response.ParamsError, "", "").FPrint(w)
@@ -296,7 +299,7 @@ func (h *EmailHandler) Download(ctx *context.Context, w http.ResponseWriter, req
 	emailId := cast.ToInt(urlInfos[3])
 	index := cast.ToInt(urlInfos[4])
 
-	fileName, content := app.AttachmentGetAttachmentsByIndex(ctx, emailId, index)
+	fileName, content := h.queries.AttachmentsByIndex(ctx, emailId, index)
 
 	if len(content) == 0 {
 		response.NewErrorResponse(response.ParamsError, "", "").FPrint(w)

@@ -15,10 +15,8 @@ type EmailDeletionSession interface {
 	Close() error
 }
 
-var OpenEmailDeletionSession func() EmailDeletionSession
-
-func EmailDeleteDelEmail(ctx *context.Context, ids []int, forcedDel bool) error {
-	session := OpenEmailDeletionSession()
+func (s *EmailService) Delete(ctx *context.Context, ids []int, forcedDel bool) error {
+	session := s.openDeletion()
 	defer session.Close()
 	if err := session.Begin(); err != nil {
 		return err
@@ -49,8 +47,8 @@ func emailDeleteDeleteOne(ctx *context.Context, repository domain.EmailDeletionR
 	return nil
 }
 
-func EmailDeleteDelByUID(ctx *context.Context, ids []int) error {
-	session := OpenEmailDeletionSession()
+func (s *EmailService) DeleteByUID(ctx *context.Context, ids []int) error {
+	session := s.openDeletion()
 	defer session.Close()
 	for _, id := range ids {
 		emailID, found, _ := session.FindEmailByUID(ctx.UserID, id)

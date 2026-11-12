@@ -59,9 +59,9 @@ type EmailListIMAPSearchResult struct {
 }
 
 // SearchEmails performs IMAP search based on criteria
-func EmailListSearchEmails(ctx *context.Context, groupName string, criteria *imap.SearchCriteria) ([]*response.UserEmailUIDData, error) {
+func (s *EmailQueryService) Search(ctx *context.Context, groupName string, criteria *imap.SearchCriteria) ([]*response.UserEmailUIDData, error) {
 	// First get the base list for the mailbox
-	baseList := EmailListGetUEListByUID(ctx, groupName, 0, 0, nil)
+	baseList := s.ListByUID(ctx, groupName, 0, 0, nil)
 	if len(baseList) == 0 {
 		return baseList, nil
 	}
@@ -91,7 +91,7 @@ func EmailListSearchEmails(ctx *context.Context, groupName string, criteria *ima
 
 	// For more complex filters, we need to fetch email data
 	if emailListNeedsEmailData(criteria) {
-		baseList = emailListFilterWithEmailData(ctx, baseList, criteria)
+		baseList = s.filterWithEmailData(ctx, baseList, criteria)
 	}
 
 	// Filter by flags (is_read status in this implementation)
@@ -102,13 +102,13 @@ func EmailListSearchEmails(ctx *context.Context, groupName string, criteria *ima
 	// Handle NOT criteria
 	if len(criteria.Not) > 0 {
 		for _, notCriteria := range criteria.Not {
-			baseList = emailListApplyNotCriteria(ctx, groupName, baseList, &notCriteria)
+			baseList = s.applyNotCriteria(ctx, groupName, baseList, &notCriteria)
 		}
 	}
 
 	// Handle OR criteria
 	if len(criteria.Or) > 0 {
-		baseList = emailListApplyOrCriteria(ctx, groupName, baseList, criteria.Or)
+		baseList = s.applyOrCriteria(ctx, groupName, baseList, criteria.Or)
 	}
 
 	return baseList, nil
@@ -225,7 +225,7 @@ func emailListHasFlag(item *response.UserEmailUIDData, flag imap.Flag) bool {
 }
 
 // filterWithEmailData loads email data and applies filters that need it
-func emailListFilterWithEmailData(ctx *context.Context, list []*response.UserEmailUIDData, criteria *imap.SearchCriteria) []*response.UserEmailUIDData {
+func (s *EmailQueryService) filterWithEmailData(ctx *context.Context, list []*response.UserEmailUIDData, criteria *imap.SearchCriteria) []*response.UserEmailUIDData {
 	if len(list) == 0 {
 		return list
 	}
@@ -240,7 +240,7 @@ func emailListFilterWithEmailData(ctx *context.Context, list []*response.UserEma
 
 	// Fetch emails from database
 	var emails []models.Email
-	err := Persistence.FindEmailsByID(emailIDs, &emails)
+	err := s.emails.FindEmailsByID(emailIDs, &emails)
 
 	if err != nil {
 		log.WithContext(ctx).Errorf("Failed to fetch emails for search: %v", err)
@@ -409,9 +409,9 @@ func emailListMatchesText(email *models.Email, pattern string) bool {
 }
 
 // applyNotCriteria applies NOT criteria
-func emailListApplyNotCriteria(ctx *context.Context, groupName string, list []*response.UserEmailUIDData, notCriteria *imap.SearchCriteria) []*response.UserEmailUIDData {
+func (s *EmailQueryService) applyNotCriteria(ctx *context.Context, groupName string, list []*response.UserEmailUIDData, notCriteria *imap.SearchCriteria) []*response.UserEmailUIDData {
 	// Get the list of items that match the NOT criteria
-	matchedList, _ := EmailListSearchEmails(ctx, groupName, notCriteria)
+	matchedList, _ := s.Search(ctx, groupName, notCriteria)
 
 	// Build a set of matched UIDs
 	matchedUIDs := make(map[int]bool)
@@ -431,7 +431,7 @@ func emailListApplyNotCriteria(ctx *context.Context, groupName string, list []*r
 }
 
 // applyOrCriteria applies OR criteria
-func emailListApplyOrCriteria(ctx *context.Context, groupName string, list []*response.UserEmailUIDData, orCriteria [][2]imap.SearchCriteria) []*response.UserEmailUIDData {
+func (s *EmailQueryService) applyOrCriteria(ctx *context.Context, groupName string, list []*response.UserEmailUIDData, orCriteria [][2]imap.SearchCriteria) []*response.UserEmailUIDData {
 	if len(orCriteria) == 0 {
 		return list
 	}
@@ -447,7 +447,7 @@ func emailListApplyOrCriteria(ctx *context.Context, groupName string, list []*re
 
 	for _, pair := range orCriteria {
 		// Get matches for first condition
-		matches1, _ := EmailListSearchEmails(ctx, groupName, &pair[0])
+		matches1, _ := s.Search(ctx, groupName, &pair[0])
 		for _, item := range matches1 {
 			if currentUIDs[item.ID] {
 				resultUIDs[item.ID] = true
@@ -455,7 +455,7 @@ func emailListApplyOrCriteria(ctx *context.Context, groupName string, list []*re
 		}
 
 		// Get matches for second condition
-		matches2, _ := EmailListSearchEmails(ctx, groupName, &pair[1])
+		matches2, _ := s.Search(ctx, groupName, &pair[1])
 		for _, item := range matches2 {
 			if currentUIDs[item.ID] {
 				resultUIDs[item.ID] = true

@@ -14,10 +14,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func EmailDetailGetEmailDetail(ctx *context.Context, id int, markRead bool) (*response.EmailResponseData, error) {
+func (s *EmailQueryService) Detail(ctx *context.Context, id int, markRead bool) (*response.EmailResponseData, error) {
 	// 先查是否是本人的邮件
 	var ue models.UserEmail
-	_, err := Persistence.FindUserEmail(id, ctx.UserID, &ue)
+	_, err := s.emails.FindUserEmail(id, ctx.UserID, &ue)
 	if err != nil {
 		log.Error(err)
 	}
@@ -27,7 +27,7 @@ func EmailDetailGetEmailDetail(ctx *context.Context, id int, markRead bool) (*re
 
 	//获取邮件内容
 	var email response.EmailResponseData
-	_, err = Persistence.FindEmailDetail(id, &email)
+	_, err = s.emails.FindEmailDetail(id, &email)
 
 	if err != nil {
 		log.WithContext(ctx).Errorf("SQL error:%+v", err)
@@ -38,7 +38,7 @@ func EmailDetailGetEmailDetail(ctx *context.Context, id int, markRead bool) (*re
 
 	if markRead && ue.IsRead == 0 {
 		ue.IsRead = 1
-		_, err = Persistence.MarkUserEmailRead(ue.ID, &ue)
+		_, err = s.emails.MarkUserEmailRead(ue.ID, &ue)
 		if err != nil {
 			log.WithContext(ctx).Errorf("SQL error:%+v", err)
 		}
@@ -56,22 +56,4 @@ func EmailDetailGetEmailDetail(ctx *context.Context, id int, markRead bool) (*re
 	}
 
 	return &email, nil
-}
-
-func EmailDetailMakeRead(ctx *context.Context, emailId int, hadRead bool) {
-	ue := models.UserEmail{
-		UserID:  ctx.UserID,
-		IsRead:  1,
-		EmailID: emailId,
-	}
-	if !hadRead {
-		ue.IsRead = 0
-	}
-	Persistence.SetEmailRead(emailId, ctx.UserID, &ue)
-}
-
-var QueryUserEmailRelations func(*context.Context, string, EmailListImapListReq, bool) []models.UserEmail
-
-func EmailDetailFindUE(ctx *context.Context, name string, req EmailListImapListReq, uid bool) []models.UserEmail {
-	return QueryUserEmailRelations(ctx, name, req, uid)
 }

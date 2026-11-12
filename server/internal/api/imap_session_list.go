@@ -3,18 +3,16 @@ package api
 import (
 	"strings"
 
-	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/Jinnrry/pmail/models"
-	"github.com/Jinnrry/pmail/pkg/context"
 	"github.com/emersion/go-imap/v2"
 	"github.com/emersion/go-imap/v2/imapserver"
 	log "github.com/sirupsen/logrus"
 )
 
-func imapMatchGroup(ctx *context.Context, w *imapserver.ListWriter, basePath, pattern string) {
+func (s *imapServerSession) matchGroup(w *imapserver.ListWriter, basePath, pattern string) {
 	var groups []*models.Group
 	if basePath == "" && pattern == "*" {
-		app.Persistence.ListUserGroups(ctx.UserID, &groups)
+		groups = s.server.groups.List(s.ctx)
 		//w.WriteList(&imap.ListData{
 		//	Attrs:   []imap.MailboxAttr{imap.MailboxAttrNoSelect, imap.MailboxAttrHasChildren},
 		//	Delim:   '/',
@@ -48,8 +46,7 @@ func imapMatchGroup(ctx *context.Context, w *imapserver.ListWriter, basePath, pa
 		})
 	} else {
 		pattern = strings.ReplaceAll(pattern, "/*", "/%")
-		app.Persistence.FindGroupsByPathPattern(ctx.UserID, pattern, &groups)
-
+		groups = s.server.groups.ListByPathPattern(s.ctx, pattern)
 	}
 	for _, group := range groups {
 
@@ -59,34 +56,16 @@ func imapMatchGroup(ctx *context.Context, w *imapserver.ListWriter, basePath, pa
 			Delim:   '/',
 		}
 
-		if imapHasChildren(ctx, group.ID) {
+		if s.server.groups.HasChildren(s.ctx, group.ID) {
 			data.Attrs = append(data.Attrs, imap.MailboxAttrHasChildren)
 		}
 
-		data.Mailbox = imapGetLayerName(ctx, group, true)
+		data.Mailbox = s.server.groups.LayerName(s.ctx, group, true)
 
 		w.WriteList(data)
 
 	}
 
-}
-
-func imapHasChildren(ctx *context.Context, id int) bool {
-	var parent []*models.Group
-	app.Persistence.FindGroupsByParent(id, &parent)
-
-	return len(parent) > 0
-}
-func imapGetLayerName(ctx *context.Context, item *models.Group, allPath bool) string {
-	if item.ParentId == 0 {
-		return item.Name
-	}
-	var parent models.Group
-	_, _ = app.Persistence.FindGroupByID(item.ParentId, &parent)
-	if allPath {
-		return imapGetLayerName(ctx, &parent, allPath) + "/" + item.Name
-	}
-	return imapGetLayerName(ctx, &parent, allPath)
 }
 
 func (s *imapServerSession) List(w *imapserver.ListWriter, ref string, patterns []string, options *imap.ListOptions) error {
@@ -100,7 +79,7 @@ func (s *imapServerSession) List(w *imapserver.ListWriter, ref string, patterns 
 		})
 	}
 	for _, pattern := range patterns {
-		imapMatchGroup(s.ctx, w, ref, pattern)
+		s.matchGroup(w, ref, pattern)
 	}
 
 	return nil

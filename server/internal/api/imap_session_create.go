@@ -3,7 +3,6 @@ package api
 import (
 	"strings"
 
-	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/emersion/go-imap/v2"
 )
 
@@ -12,7 +11,7 @@ func (s *imapServerSession) Create(mailbox string, options *imap.CreateOptions) 
 
 	var parentId int
 	for _, path := range groupPath {
-		newGroup, err := app.CreateGroup(s.ctx, path, parentId)
+		newGroup, err := s.server.groups.Create(s.ctx, path, parentId)
 		if err != nil {
 			return &imap.Error{
 				Type: imap.StatusResponseTypeNo,

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Jinnrry/gopop"
 	"github.com/Jinnrry/pmail/config"
+	"github.com/Jinnrry/pmail/internal/app"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,7 +23,7 @@ func StartPOP3S() {
 	tlsConfig.Certificates = []tls.Certificate{crt}
 	tlsConfig.Time = time.Now
 	tlsConfig.Rand = rand.Reader
-	pop3InstanceTls = gopop.NewPop3Server(995, "pop."+config.Instance.Domain, true, tlsConfig, pop3Action{})
+	pop3InstanceTls = gopop.NewPop3Server(995, "pop."+config.Instance.Domain, true, tlsConfig, pop3Action{users: app.UserSvc, queries: app.EmailQuerySvc, emails: app.EmailSvc})
 	pop3InstanceTls.ConnectAliveTime = 5 * time.Minute
 
 	log.Infof("POP3 With TLS Server Start On Port :995")
@@ -42,7 +43,7 @@ func StartPOP3() {
 	tlsConfig.Certificates = []tls.Certificate{crt}
 	tlsConfig.Time = time.Now
 	tlsConfig.Rand = rand.Reader
-	pop3Instance = gopop.NewPop3Server(110, "pop."+config.Instance.Domain, false, tlsConfig, pop3Action{})
+	pop3Instance = gopop.NewPop3Server(110, "pop."+config.Instance.Domain, false, tlsConfig, pop3Action{users: app.UserSvc, queries: app.EmailQuerySvc, emails: app.EmailSvc})
 	pop3Instance.ConnectAliveTime = 5 * time.Minute
 	log.Infof("POP3 Server Start On Port :110")
 

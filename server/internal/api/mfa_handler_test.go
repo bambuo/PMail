@@ -14,14 +14,13 @@ import (
 )
 
 func TestMFASetupTargetsOtherAccountOnlyForAdmin(t *testing.T) {
-	oldSetup := app.SetupMFAFn
-	t.Cleanup(func() { app.SetupMFAFn = oldSetup })
 	called := false
-	app.SetupMFAFn = func(ctx *pcontext.Context, account string) (*mfadto.SetupData, error) {
-		called = true
-		return &mfadto.SetupData{Secret: "test-secret", URL: "url", QRDataURL: "qr"}, nil
-	}
-	h := &MFAHandler{}
+	h := &MFAHandler{mfa: app.NewMFAService(app.MFAPorts{
+		Setup: func(ctx *pcontext.Context, account string) (*mfadto.SetupData, error) {
+			called = true
+			return &mfadto.SetupData{Secret: "test-secret", URL: "url", QRDataURL: "qr"}, nil
+		},
+	})}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/mfa/setup", strings.NewReader(`{"account":"other"}`))
 	rec := httptest.NewRecorder()
@@ -55,14 +54,13 @@ func TestMFASetupTargetsOtherAccountOnlyForAdmin(t *testing.T) {
 }
 
 func TestMFAResetRequiresAdmin(t *testing.T) {
-	oldReset := app.ResetMFAFn
-	t.Cleanup(func() { app.ResetMFAFn = oldReset })
 	called := false
-	app.ResetMFAFn = func(ctx *pcontext.Context, account, password string) error {
-		called = true
-		return nil
-	}
-	h := &MFAHandler{}
+	h := &MFAHandler{mfa: app.NewMFAService(app.MFAPorts{
+		Reset: func(ctx *pcontext.Context, account, password string) error {
+			called = true
+			return nil
+		},
+	})}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/mfa/reset", strings.NewReader(`{"account":"other","password":"pwd"}`))
 	rec := httptest.NewRecorder()

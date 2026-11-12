@@ -45,7 +45,7 @@ type MailAttachmentInput struct {
 	Data string `json:"data"`
 }
 
-func SubmitEmail(ctx *context.Context, reqData SendEmailInput) error {
+func (s *EmailService) Submit(ctx *context.Context, reqData SendEmailInput) error {
 	if reqData.From.Email != "" {
 		infos := strings.Split(reqData.From.Email, "@")
 		if len(infos) != 2 || !array.InArray(infos[1], config.Instance.Domains) {
@@ -138,7 +138,7 @@ func SubmitEmail(ctx *context.Context, reqData SendEmailInput) error {
 	}
 
 	log.WithContext(ctx).Debugf("插件执行--SendBefore")
-	for _, hook := range AllHooks() {
+	for _, hook := range s.hooks() {
 		if hook == nil {
 			continue
 		}
@@ -169,7 +169,7 @@ func SubmitEmail(ctx *context.Context, reqData SendEmailInput) error {
 		MsgID:        parsemail.GenerateMsgID(config.Instance.Domain),
 	}
 
-	_, err := Persistence.InsertOutgoingEmail(&modelEmail)
+	_, err := s.emails.InsertOutgoingEmail(&modelEmail)
 
 	if err != nil || modelEmail.Id <= 0 {
 		log.Println("insert error:", err.Error())
@@ -186,7 +186,7 @@ func SubmitEmail(ctx *context.Context, reqData SendEmailInput) error {
 		log.WithContext(ctx).Debugf("插件执行--SendAfter")
 
 		as2 := async.New(ctx)
-		for _, hook := range AllHooks() {
+		for _, hook := range s.hooks() {
 			if hook == nil {
 				continue
 			}
@@ -199,7 +199,7 @@ func SubmitEmail(ctx *context.Context, reqData SendEmailInput) error {
 
 		if err != nil {
 			errMsg = err.Error()
-			_, err := Persistence.RecordOutgoingFailure(ctx, errMsg, modelEmail.Id)
+			_, err := s.emails.RecordOutgoingFailure(ctx, errMsg, modelEmail.Id)
 			if err != nil {
 				log.WithContext(ctx).Errorf("sql Error :%+v", err)
 			}
@@ -210,10 +210,10 @@ func SubmitEmail(ctx *context.Context, reqData SendEmailInput) error {
 				Status:  2,
 				IsRead:  1,
 			}
-			Persistence.InsertFailedEmailOwner(&ue)
+			s.emails.InsertFailedEmailOwner(&ue)
 
 		} else {
-			_, err := Persistence.RecordOutgoingSuccess(ctx, modelEmail.Id)
+			_, err := s.emails.RecordOutgoingSuccess(ctx, modelEmail.Id)
 			if err != nil {
 				log.WithContext(ctx).Errorf("sql Error :%+v", err)
 			}
@@ -224,7 +224,7 @@ func SubmitEmail(ctx *context.Context, reqData SendEmailInput) error {
 				Status:  1,
 				IsRead:  1,
 			}
-			Persistence.InsertFailedEmailOwner(&ue)
+			s.emails.InsertFailedEmailOwner(&ue)
 
 		}
 

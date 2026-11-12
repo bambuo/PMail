@@ -1,12 +1,13 @@
 // 持久化端口按模块拆分为角色接口（User/Email/Group/MailboxStats/Rule），
-// 每个消费方只依赖自己用到的角色接口；PersistencePort 为其组合，
-// 由 infra.PersistenceRepository 统一实现、bootstrap.BindDependencies 装配。
+// 每个消费方只依赖自己用到的角色接口；由 infra.PersistenceRepository
+// 统一实现、bootstrap.BindDependencies 装配到各领域服务。
 package app
 
 import (
 	"database/sql"
 	"time"
 
+	"github.com/Jinnrry/pmail/dto"
 	"github.com/Jinnrry/pmail/dto/response"
 	"github.com/Jinnrry/pmail/internal/domain"
 	"github.com/Jinnrry/pmail/models"
@@ -74,6 +75,23 @@ type GroupPersistence interface {
 	FindGroupsByParent(parentID int, groups *[]*models.Group) error
 	FindGroupByID(id int, group *models.Group) (bool, error)
 	FindGroupsByPathPattern(userID int, pattern string, groups *[]*models.Group) error
+	RemoveGroups(ctx *context.Context, groupIDs []int) (bool, error)
+}
+
+// EmailQueryPersistence 邮件列表、详情与搜索查询端口
+type EmailQueryPersistence interface {
+	QueryEmailList(ctx *context.Context, tagInfo dto.SearchTag, keyword string, pop3List bool, offset, limit int) ([]*response.EmailResponseData, int64)
+	MailboxStat(ctx *context.Context) (int64, int64)
+	EmailListGetUEListByUID(ctx *context.Context, groupName string, start, end int, uidList []int) []*response.UserEmailUIDData
+	EmailListGetEmailListByGroup(ctx *context.Context, groupName string, req EmailListImapListReq, uid bool) []*response.EmailResponseData
+	EmailDetailFindUE(ctx *context.Context, groupName string, req EmailListImapListReq, uid bool) []models.UserEmail
+}
+
+// EmailAuditPersistence 邮件入库审计与投递结果持久化端口
+type EmailAuditPersistence interface {
+	PersistInitialAudit(ctx *context.Context, email models.Email, userIDs []int) (*models.Email, error)
+	PersistDeliveryResult(ctx *context.Context, emailID int, status int8, errorText any) error
+	FindRecipientAccounts(accounts []string, users *[]*models.User) error
 }
 
 // MailboxStatsPersistence 邮箱统计模块持久化端口（IMAP/POP3 状态与列表计数）
@@ -104,14 +122,3 @@ type RulePersistence interface {
 	InsertUserRule(ctx *context.Context, name string, value string, userID int, action int, params string, sort int) (sql.Result, error)
 	DeleteUserRule(ctx *context.Context, ruleID int, userID int) (sql.Result, error)
 }
-
-// PersistencePort 组合端口：兼容既有消费方，能力等于五个角色接口之和
-type PersistencePort interface {
-	UserPersistence
-	EmailPersistence
-	GroupPersistence
-	MailboxStatsPersistence
-	RulePersistence
-}
-
-var Persistence PersistencePort

@@ -9,19 +9,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func AttachmentGetAttachments(ctx *context.Context, emailId int, cid string) (string, []byte) {
-
-	// 获取邮件内容
+func (s *EmailQueryService) Attachments(ctx *context.Context, emailId int, cid string) (string, []byte) {
 	var email models.Email
-	_, err := Persistence.FindEmailByID(emailId, &email)
+	_, err := s.emails.FindEmailByID(emailId, &email)
 
 	if err != nil {
 		log.WithContext(ctx).Errorf("SQL error:%+v", err)
 		return "", nil
 	}
 
-	// 检查权限
-	if !AuthHasAuth(ctx, &email) {
+	if !s.HasAccess(ctx, &email) {
 		return "", nil
 	}
 
@@ -35,19 +32,16 @@ func AttachmentGetAttachments(ctx *context.Context, emailId int, cid string) (st
 	return "", nil
 }
 
-func AttachmentGetAttachmentsByIndex(ctx *context.Context, emailId int, index int) (string, []byte) {
-
-	// 获取邮件内容
+func (s *EmailQueryService) AttachmentsByIndex(ctx *context.Context, emailId int, index int) (string, []byte) {
 	var email models.Email
-	_, err := Persistence.FindEmailByID(emailId, &email)
+	_, err := s.emails.FindEmailByID(emailId, &email)
 
 	if err != nil {
 		log.WithContext(ctx).Errorf("SQL error:%+v", err)
 		return "", nil
 	}
 
-	// 检查权限
-	if !AuthHasAuth(ctx, &email) {
+	if !s.HasAccess(ctx, &email) {
 		return "", nil
 	}
 

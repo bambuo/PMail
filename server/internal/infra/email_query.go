@@ -17,7 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func QueryEmailList(ctx *context.Context, tagInfo dto.SearchTag, keyword string, pop3List bool, offset, limit int) (emailList []*response.EmailResponseData, total int64) {
+func (r PersistenceRepository) QueryEmailList(ctx *context.Context, tagInfo dto.SearchTag, keyword string, pop3List bool, offset, limit int) (emailList []*response.EmailResponseData, total int64) {
 	querySQL, queryParams := emailListGenSQL(ctx, false, tagInfo, keyword, pop3List, offset, limit)
 
 	err := PersistenceRepository{}.SelectEmailList(querySQL, queryParams, &emailList)
@@ -112,7 +112,7 @@ func emailListGenSQL(ctx *context.Context, count bool, tagInfo dto.SearchTag, ke
 }
 
 // Stat 查询邮件总数和大小
-func MailboxStat(ctx *context.Context) (int64, int64) {
+func (r PersistenceRepository) MailboxStat(ctx *context.Context) (int64, int64) {
 	sql := `select count(1) as total,sum(size) as size from email e left join user_email ue on e.id=ue.email_id where ue.user_id = ? and e.type = 0 and ue.status != 3`
 	var ret domain.EmailStatRow
 	_, err := PersistenceRepository{}.SelectMailboxStat(sql, ctx.UserID, &ret)
@@ -122,7 +122,7 @@ func MailboxStat(ctx *context.Context) (int64, int64) {
 	return ret.Total, ret.Size
 }
 
-func EmailListGetUEListByUID(ctx *context.Context, groupName string, star, end int, uidList []int) []*response.UserEmailUIDData {
+func (r PersistenceRepository) EmailListGetUEListByUID(ctx *context.Context, groupName string, star, end int, uidList []int) []*response.UserEmailUIDData {
 	var ue []*response.UserEmailUIDData
 	sql := "SELECT id,email_id, is_read, ROW_NUMBER() OVER (ORDER BY id) AS serial_number FROM `user_email` WHERE user_id = ? "
 
@@ -230,7 +230,7 @@ func emailListGetEmailListByUidList(ctx *context.Context, groupName string, req 
 	return ret
 }
 
-func EmailListGetEmailListByGroup(ctx *context.Context, groupName string, req app.EmailListImapListReq, uid bool) []*response.EmailResponseData {
+func (r PersistenceRepository) EmailListGetEmailListByGroup(ctx *context.Context, groupName string, req app.EmailListImapListReq, uid bool) []*response.EmailResponseData {
 	if len(req.UidList) == 0 && req.Star == 0 && req.End == 0 {
 		return nil
 	}

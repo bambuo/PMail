@@ -6,63 +6,76 @@ import (
 	pcontext "github.com/Jinnrry/pmail/pkg/context"
 )
 
-var (
-	SetupMFAFn           func(*pcontext.Context, string) (*mfadto.SetupData, error)
-	ConfirmMFAFn         func(*pcontext.Context, string, string) ([]string, error)
-	DisableMFAFn         func(*pcontext.Context, string, string) error
-	ResetMFAFn           func(*pcontext.Context, string, string) error
-	StatusMFAFn          func(*pcontext.Context) (*mfadto.Status, error)
-	CreateMFAChallengeFn func(int) (string, error)
-	VerifyMFAChallengeFn func(string, string) (*models.User, error)
-)
-
-func SetupMFA(ctx *pcontext.Context, account string) (*mfadto.SetupData, error) {
-	if SetupMFAFn == nil {
-		return nil, mfadto.ErrDisabled
-	}
-	return SetupMFAFn(ctx, account)
+// MFAPorts 两步验证能力，由 bootstrap 绑定到 infra 实现。
+type MFAPorts struct {
+	Setup           func(*pcontext.Context, string) (*mfadto.SetupData, error)
+	Confirm         func(*pcontext.Context, string, string) ([]string, error)
+	Disable         func(*pcontext.Context, string, string) error
+	Reset           func(*pcontext.Context, string, string) error
+	Status          func(*pcontext.Context) (*mfadto.Status, error)
+	CreateChallenge func(int) (string, error)
+	VerifyChallenge func(string, string) (*models.User, error)
 }
 
-func ConfirmMFA(ctx *pcontext.Context, account, code string) ([]string, error) {
-	if ConfirmMFAFn == nil {
-		return nil, mfadto.ErrDisabled
-	}
-	return ConfirmMFAFn(ctx, account, code)
+// MFAService 两步验证用例：绑定、确认、关闭、重置与登录挑战。
+type MFAService struct {
+	ports MFAPorts
 }
 
-func DisableMFA(ctx *pcontext.Context, password, code string) error {
-	if DisableMFAFn == nil {
+func NewMFAService(ports MFAPorts) *MFAService {
+	return &MFAService{ports: ports}
+}
+
+// MFASvc 两步验证服务实例，由 bootstrap.BindDependencies 装配
+var MFASvc *MFAService
+
+func (s *MFAService) Setup(ctx *pcontext.Context, account string) (*mfadto.SetupData, error) {
+	if s.ports.Setup == nil {
+		return nil, mfadto.ErrDisabled
+	}
+	return s.ports.Setup(ctx, account)
+}
+
+func (s *MFAService) Confirm(ctx *pcontext.Context, account, code string) ([]string, error) {
+	if s.ports.Confirm == nil {
+		return nil, mfadto.ErrDisabled
+	}
+	return s.ports.Confirm(ctx, account, code)
+}
+
+func (s *MFAService) Disable(ctx *pcontext.Context, password, code string) error {
+	if s.ports.Disable == nil {
 		return mfadto.ErrDisabled
 	}
-	return DisableMFAFn(ctx, password, code)
+	return s.ports.Disable(ctx, password, code)
 }
 
-func ResetMFA(ctx *pcontext.Context, account, operatorPassword string) error {
-	if ResetMFAFn == nil {
+func (s *MFAService) Reset(ctx *pcontext.Context, account, operatorPassword string) error {
+	if s.ports.Reset == nil {
 		return mfadto.ErrDisabled
 	}
-	return ResetMFAFn(ctx, account, operatorPassword)
+	return s.ports.Reset(ctx, account, operatorPassword)
 }
 
-func StatusMFA(ctx *pcontext.Context) (*mfadto.Status, error) {
-	if StatusMFAFn == nil {
+func (s *MFAService) Status(ctx *pcontext.Context) (*mfadto.Status, error) {
+	if s.ports.Status == nil {
 		return nil, mfadto.ErrDisabled
 	}
-	return StatusMFAFn(ctx)
+	return s.ports.Status(ctx)
 }
 
-func CreateMFAChallenge(userID int) (string, error) {
-	if CreateMFAChallengeFn == nil {
+func (s *MFAService) CreateChallenge(userID int) (string, error) {
+	if s.ports.CreateChallenge == nil {
 		return "", mfadto.ErrDisabled
 	}
-	return CreateMFAChallengeFn(userID)
+	return s.ports.CreateChallenge(userID)
 }
 
-func VerifyMFAChallenge(token, code string) (*models.User, error) {
-	if VerifyMFAChallengeFn == nil {
+func (s *MFAService) VerifyChallenge(token, code string) (*models.User, error) {
+	if s.ports.VerifyChallenge == nil {
 		return nil, mfadto.ErrDisabled
 	}
-	return VerifyMFAChallengeFn(token, code)
+	return s.ports.VerifyChallenge(token, code)
 }
 
 func MFAIsEnabled(user *models.User) bool {

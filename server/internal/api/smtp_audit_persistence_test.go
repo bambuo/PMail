@@ -382,7 +382,7 @@ func TestOutgoingPendingAuditMailboxVisibility(t *testing.T) {
 	}
 	smtpAssertAuditStatuses(t, engine, consts.EmailStatusDeliveryPending)
 
-	outgoing, _ := app.ListEmails(session.Ctx, dto.SearchTag{
+	outgoing, _ := app.EmailQuerySvc.List(session.Ctx, dto.SearchTag{
 		Type:    consts.EmailTypeSend,
 		Status:  -1,
 		GroupId: -1,
@@ -401,7 +401,7 @@ func TestOutgoingPendingAuditMailboxVisibility(t *testing.T) {
 	}
 
 	for _, mailbox := range []string{"INBOX", "Sent Messages"} {
-		for _, item := range app.EmailListGetUEListByUID(session.Ctx, mailbox, 0, 0, nil) {
+		for _, item := range app.EmailQuerySvc.ListByUID(session.Ctx, mailbox, 0, 0, nil) {
 			if item.EmailID == saved.Id {
 				t.Fatalf("pending audit email %d unexpectedly appears in IMAP mailbox %q", saved.Id, mailbox)
 			}
@@ -479,7 +479,7 @@ func smtpBeginAuditReadTransaction(t *testing.T, dsn string) *sql.Tx {
 }
 
 func smtpNewAuditTestSession() *SMTPSession {
-	return &SMTPSession{Ctx: &context.Context{UserID: 1, UserAccount: "sender", IsAdmin: true}}
+	return &SMTPSession{Ctx: &context.Context{UserID: 1, UserAccount: "sender", IsAdmin: true}, Service: app.EmailSvc}
 }
 
 func smtpNewAuditTestEmail(messageID string) *parsemail.Email {
@@ -558,4 +558,8 @@ func smtpAssertMessageIDCount(t *testing.T, engine *xorm.Engine, messageID strin
 	if count != want {
 		t.Fatalf("rows for Message-ID %q = %d, want %d", messageID, count, want)
 	}
+}
+
+func smtpSaveEmail(ctx *context.Context, size int, email *parsemail.Email, sendUserID, emailType int, recipients []string, spf, dkim bool) ([]*models.User, *models.Email, error) {
+	return app.EmailSvc.Save(ctx, size, email, sendUserID, emailType, recipients, spf, dkim)
 }

@@ -17,7 +17,9 @@ import (
 )
 
 // PluginHandler 插件接口：列表、设置页与审批/启停等管理操作
-type PluginHandler struct{}
+type PluginHandler struct {
+	plugins *app.PluginService
+}
 
 type pluginManageListResponse struct {
 	Enabled bool          `json:"enabled"`
@@ -51,7 +53,7 @@ const maxPluginUploadBytes = 32 << 20
 // GetList 返回已注册的插件钩子名称
 func (h *PluginHandler) GetList(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
 	ret := []string{}
-	for _, s := range app.HookNames() {
+	for _, s := range h.plugins.HookNames() {
 		ret = append(ret, s)
 	}
 	response.NewSuccessResponse(ret).FPrint(w)
@@ -67,7 +69,7 @@ func (h *PluginHandler) SettingsHtml(ctx *pcontext.Context, w http.ResponseWrite
 	}
 
 	pluginName := args[4]
-	if plugin, ok := app.GetHook(pluginName); ok {
+	if plugin, ok := h.plugins.GetHook(pluginName); ok {
 		dt, err := io.ReadAll(req.Body)
 		if err != nil {
 			response.NewErrorResponse(response.ParamsError, err.Error(), "").FPrint(w)
@@ -93,7 +95,7 @@ func (h *PluginHandler) ManageList(ctx *pcontext.Context, w http.ResponseWriter,
 	if !pluginManageRequireAdmin(ctx, w) {
 		return
 	}
-	list := app.GetPluginManageList()
+	list := h.plugins.List()
 	if list == nil {
 		list = []plugin.Info{}
 	}
@@ -114,7 +116,7 @@ func (h *PluginHandler) ManageApprove(ctx *pcontext.Context, w http.ResponseWrit
 		pluginManageFail(w, response.ParamsError, errors.New("pluginId is required"))
 		return
 	}
-	if err := app.ApprovePlugin(ctx, body.PluginID, body.Hooks, body.Capabilities); err != nil {
+	if err := h.plugins.Approve(ctx, body.PluginID, body.Hooks, body.Capabilities); err != nil {
 		pluginManageError(w, err)
 		return
 	}
@@ -129,19 +131,19 @@ func (h *PluginHandler) ManageApprove(ctx *pcontext.Context, w http.ResponseWrit
 }
 
 func (h *PluginHandler) ManageEnable(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
-	pluginManageSimpleAction(ctx, w, req, "enable", app.EnablePlugin, string(plugin.StatusEnabled))
+	pluginManageSimpleAction(ctx, w, req, "enable", h.plugins.Enable, string(plugin.StatusEnabled))
 }
 
 func (h *PluginHandler) ManageDisable(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
-	pluginManageSimpleAction(ctx, w, req, "disable", app.DisablePlugin, string(plugin.StatusDisabled))
+	pluginManageSimpleAction(ctx, w, req, "disable", h.plugins.Disable, string(plugin.StatusDisabled))
 }
 
 func (h *PluginHandler) ManageReject(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
-	pluginManageSimpleAction(ctx, w, req, "reject", app.RejectPlugin, string(plugin.StatusRejected))
+	pluginManageSimpleAction(ctx, w, req, "reject", h.plugins.Reject, string(plugin.StatusRejected))
 }
 
 func (h *PluginHandler) ManageReload(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
-	pluginManageSimpleAction(ctx, w, req, "reload", app.ReloadPlugin, string(plugin.StatusEnabled))
+	pluginManageSimpleAction(ctx, w, req, "reload", h.plugins.Reload, string(plugin.StatusEnabled))
 }
 
 func (h *PluginHandler) ManageUpload(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
@@ -168,7 +170,7 @@ func (h *PluginHandler) ManageUpload(ctx *pcontext.Context, w http.ResponseWrite
 		pluginManageFail(w, response.ParamsError, fmt.Errorf("file must be between 1 byte and %d bytes", maxPluginUploadBytes))
 		return
 	}
-	info, err := app.InstallPlugin(data)
+	info, err := h.plugins.Install(data)
 	if err != nil {
 		pluginManageFail(w, response.ParamsError, err)
 		return

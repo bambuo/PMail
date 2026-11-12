@@ -37,15 +37,17 @@ type mfaLoginRequest struct {
 	Code           string `json:"code"`
 }
 
-// MFAHandler 用户 MFA 接口（含登录挑战），委托 MFA 用例函数
-type MFAHandler struct{}
+// MFAHandler 用户 MFA 接口（含登录挑战），委托 MFA 用例服务
+type MFAHandler struct {
+	mfa *app.MFAService
+}
 
 func (h *MFAHandler) Status(ctx *pcontext.Context, w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		mfaFail(w, fmt.Errorf("method %s not allowed", req.Method))
 		return
 	}
-	status, err := app.StatusMFA(ctx)
+	status, err := h.mfa.Status(ctx)
 	if err != nil {
 		mfaFail(w, err)
 		return
@@ -67,7 +69,7 @@ func (h *MFAHandler) Setup(ctx *pcontext.Context, w http.ResponseWriter, req *ht
 		mfaForbidden(w)
 		return
 	}
-	data, err := app.SetupMFA(ctx, body.Account)
+	data, err := h.mfa.Setup(ctx, body.Account)
 	if err != nil {
 		mfaFail(w, err)
 		return
@@ -90,7 +92,7 @@ func (h *MFAHandler) Confirm(ctx *pcontext.Context, w http.ResponseWriter, req *
 		mfaForbidden(w)
 		return
 	}
-	codes, err := app.ConfirmMFA(ctx, body.Account, body.Code)
+	codes, err := h.mfa.Confirm(ctx, body.Account, body.Code)
 	if err != nil {
 		mfaFail(w, err)
 		return
@@ -113,7 +115,7 @@ func (h *MFAHandler) Disable(ctx *pcontext.Context, w http.ResponseWriter, req *
 		mfaFail(w, fmt.Errorf("password and code are required"))
 		return
 	}
-	if err := app.DisableMFA(ctx, body.Password, body.Code); err != nil {
+	if err := h.mfa.Disable(ctx, body.Password, body.Code); err != nil {
 		mfaFail(w, err)
 		return
 	}
@@ -135,7 +137,7 @@ func (h *MFAHandler) Reset(ctx *pcontext.Context, w http.ResponseWriter, req *ht
 		mfaFail(w, mfaErrorOrDefault(err, "account and password are required"))
 		return
 	}
-	if err := app.ResetMFA(ctx, body.Account, body.Password); err != nil {
+	if err := h.mfa.Reset(ctx, body.Account, body.Password); err != nil {
 		mfaFail(w, err)
 		return
 	}
@@ -153,7 +155,7 @@ func (h *MFAHandler) LoginMFA(ctx *pcontext.Context, w http.ResponseWriter, req 
 		response.NewErrorResponse(response.ParamsError, app.TextGetText(ctx.Lang, "mfa_invalid"), "").FPrint(w)
 		return
 	}
-	user, err := app.VerifyMFAChallenge(body.ChallengeToken, body.Code)
+	user, err := h.mfa.VerifyChallenge(body.ChallengeToken, body.Code)
 	if err != nil {
 		log.WithContext(ctx).Warnf("mfa login failed: %v", err)
 		response.NewErrorResponse(response.ParamsError, app.TextGetText(ctx.Lang, "mfa_invalid"), "").FPrint(w)

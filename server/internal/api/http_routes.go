@@ -26,12 +26,12 @@ func httpServerRouter(mux *http.ServeMux) {
 	if err != nil {
 		panic(err)
 	}
-	userHandler := &UserHandler{users: app.UserSvc}
-	ruleHandler := &RuleHandler{rules: app.Persistence}
-	groupHandler := &GroupHandler{}
-	emailHandler := &EmailHandler{}
-	mfaHandler := &MFAHandler{}
-	pluginHandler := &PluginHandler{}
+	userHandler := &UserHandler{users: app.UserSvc, mfa: app.MFASvc}
+	ruleHandler := &RuleHandler{rules: app.RuleSvc}
+	groupHandler := &GroupHandler{groups: app.GroupSvc}
+	emailHandler := &EmailHandler{queries: app.EmailQuerySvc, emails: app.EmailSvc}
+	mfaHandler := &MFAHandler{mfa: app.MFASvc}
+	pluginHandler := &PluginHandler{plugins: app.PluginSvc}
 	mux.Handle("/", httpServerSPAHandler(fe))
 	// 挑战请求类似这样 /.well-known/acme-challenge/QPyMAyaWw9s5JvV1oruyqWHG7OqkHMJEHPoUz2046KM
 	mux.HandleFunc("/.well-known/", HTTPAcmeChallenge)

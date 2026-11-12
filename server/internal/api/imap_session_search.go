@@ -1,7 +1,6 @@
 package api
 
 import (
-	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/emersion/go-imap/v2"
 	"github.com/emersion/go-imap/v2/imapserver"
 	log "github.com/sirupsen/logrus"
@@ -15,7 +14,7 @@ func (s *imapServerSession) Search(kind imapserver.NumKind, criteria *imap.Searc
 	log.WithContext(s.ctx).Debugf("IMAP SEARCH: mailbox=%s, kind=%v, criteria=%+v", s.currentMailbox, kind, criteria)
 
 	// Use the new comprehensive search function
-	retList, err := app.EmailListSearchEmails(s.ctx, s.currentMailbox, criteria)
+	retList, err := s.server.queries.Search(s.ctx, s.currentMailbox, criteria)
 	if err != nil {
 		log.WithContext(s.ctx).Errorf("IMAP SEARCH error: %v", err)
 		return nil, err

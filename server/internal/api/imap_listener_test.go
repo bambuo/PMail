@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Jinnrry/pmail/config"
+	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/Jinnrry/pmail/internal/infra"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/array"
@@ -628,7 +629,7 @@ func TestIdleNotice(t *testing.T) {
 	}
 
 	ctx := &pcontext.Context{UserID: user.ID}
-	if err = IMAPIdleNotice(ctx, user.ID, &models.Email{Id: 1}); err != nil {
+	if err = NewIMAPIdleNotifier(app.GroupSvc).Notify(ctx, user.ID, &models.Email{Id: 1}); err != nil {
 		t.Fatal(err)
 	}
 

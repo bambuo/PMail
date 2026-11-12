@@ -46,7 +46,7 @@ func TestForwardToLocalUser(t *testing.T) {
 	}
 
 	email := &parsemail.Email{MessageId: 123, Status: 0}
-	if err := app.ForwardEmail(&context.Context{}, email, "recipient@example.com", sender, nil); err != nil {
+	if err := app.RuleSvc.Forward(&context.Context{}, email, "recipient@example.com", sender, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -58,7 +58,7 @@ func TestForwardToLocalUser(t *testing.T) {
 		t.Fatalf("expected one user_email link for recipient, got %+v", links)
 	}
 
-	if err := app.ForwardEmail(&context.Context{}, email, "recipient@example.com", sender, nil); err != nil {
+	if err := app.RuleSvc.Forward(&context.Context{}, email, "recipient@example.com", sender, nil); err != nil {
 		t.Fatal(err)
 	}
 	var count int64
@@ -80,7 +80,7 @@ func TestForwardToLocalUserRejectsSelfLoop(t *testing.T) {
 		Domains: []string{"example.com"},
 	}
 
-	err := app.ForwardEmail(&context.Context{}, &parsemail.Email{MessageId: 1}, "sender@example.com", &models.User{Account: "sender"}, nil)
+	err := app.RuleSvc.Forward(&context.Context{}, &parsemail.Email{MessageId: 1}, "sender@example.com", &models.User{Account: "sender"}, nil)
 	if err == nil || !strings.Contains(err.Error(), "loop forwarding to self") {
 		t.Fatalf("expected self-loop error, got %v", err)
 	}

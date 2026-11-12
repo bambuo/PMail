@@ -8,23 +8,41 @@ import (
 const smtpDeliveryPendingError = app.DeliveryPendingError
 
 func bindTestDependencies() {
-	app.Persistence = infra.PersistenceRepository{}
-	app.OpenEmailDeletionSession = infra.NewEmailDeletionSession
-	app.RemoveGroups = infra.RemoveGroups
-	app.InitializeDatabase = infra.InitDatabase
-	app.GenerateDKIM = infra.GenerateDKIM
-	app.AllHooks = infra.PluginAllHooks
-	app.HookNames = infra.PluginHookNames
-	app.GetHook = infra.PluginGetHook
-	app.CheckSPF = infra.CheckSPF
-	app.PersistInitialAudit = infra.PersistInitialAudit
-	app.PersistDeliveryResult = infra.PersistDeliveryResult
-	app.FindRecipientAccounts = infra.FindRecipientAccounts
-	app.DeliveryResultError = DeliveryResultError
-	app.NotifyMailbox = IMAPIdleNotice
-	app.QueryEmailList = infra.QueryEmailList
-	app.QueryMailboxStat = infra.MailboxStat
-	app.QueryUIDList = infra.EmailListGetUEListByUID
-	app.QueryMailboxEmails = infra.EmailListGetEmailListByGroup
-	app.QueryUserEmailRelations = infra.EmailDetailFindUE
+	repo := infra.PersistenceRepository{}
+	app.UserSvc = app.NewUserService(repo)
+	app.EmailQuerySvc = app.NewEmailQueryService(repo, repo)
+	app.RuleSvc = app.NewRuleService(repo, repo)
+	app.GroupSvc = app.NewGroupService(repo, repo)
+	app.EmailSvc = app.NewEmailService(app.EmailServiceDeps{
+		Emails:              repo,
+		Users:               repo,
+		Audit:               repo,
+		OpenDeletionSession: infra.NewEmailDeletionSession,
+		NotifyMailbox:       NewIMAPIdleNotifier(app.GroupSvc).Notify,
+		CheckSPF:            infra.CheckSPF,
+		Hooks:               infra.PluginAllHooks,
+		DeliveryError:       DeliveryResultError,
+		Rules:               app.RuleSvc,
+	})
+	app.SetupSvc = app.NewSetupService(repo, infra.InitDatabase, infra.GenerateDKIM)
+	app.PluginSvc = app.NewPluginService(app.PluginPorts{
+		List:      infra.PluginManageList,
+		Approve:   infra.PluginManageApprove,
+		Enable:    infra.PluginManageEnable,
+		Disable:   infra.PluginManageDisable,
+		Reject:    infra.PluginManageReject,
+		Reload:    infra.PluginManageReload,
+		Install:   infra.PluginManageInstall,
+		HookNames: infra.PluginHookNames,
+		GetHook:   infra.PluginGetHook,
+	})
+	app.MFASvc = app.NewMFAService(app.MFAPorts{
+		Setup:           infra.MFASetup,
+		Confirm:         infra.MFAConfirm,
+		Disable:         infra.MFADisable,
+		Reset:           infra.MFAReset,
+		Status:          infra.MFAStatus,
+		CreateChallenge: infra.MFACreateChallenge,
+		VerifyChallenge: infra.MFAVerifyChallenge,
+	})
 }

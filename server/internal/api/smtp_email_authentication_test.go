@@ -9,6 +9,7 @@ import (
 	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/dto/parsemail"
 	"github.com/Jinnrry/pmail/hooks/contract"
+	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/Jinnrry/pmail/internal/infra"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/context"
@@ -80,6 +81,7 @@ func TestReceiveHooksAndDatabaseShareAuthenticationResult(t *testing.T) {
 
 	emailData := []byte("From: sender\r\nTo: recipient@test.domain\r\nSubject: authentication flow\r\n\r\nbody")
 	session := SMTPSession{
+		Service:       app.EmailSvc,
 		RemoteAddress: net.TCPAddrFromAddrPort(netip.MustParseAddrPort("203.0.113.1:25")),
 		Ctx:           &context.Context{},
 		To:            []string{"recipient@test.domain"},

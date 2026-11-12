@@ -19,6 +19,7 @@ import (
 // UserHandler 用户与账号接口：登录、口令、账号管理，经 UserService 访问持久化端口
 type UserHandler struct {
 	users *app.UserService
+	mfa   *app.MFAService
 }
 
 // loginUserResponse 组装登录成功响应；api_key 为口令哈希，供按需铸造 5 秒时效 Token
@@ -86,7 +87,7 @@ func (h *UserHandler) Login(ctx *context.Context, w http.ResponseWriter, req *ht
 	}
 
 	if app.MFAIsEnabled(user) {
-		token, err := app.CreateMFAChallenge(user.ID)
+		token, err := h.mfa.CreateChallenge(user.ID)
 		if err != nil {
 			response.NewErrorResponse(response.ServerError, err.Error(), "").FPrint(w)
 			return

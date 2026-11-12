@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	errors2 "errors"
 	"strings"
 
@@ -10,17 +9,18 @@ import (
 	"github.com/Jinnrry/pmail/dto"
 	"github.com/Jinnrry/pmail/dto/parsemail"
 	"github.com/Jinnrry/pmail/internal/app"
-	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/array"
 	"github.com/Jinnrry/pmail/pkg/context"
 	"github.com/Jinnrry/pmail/pkg/errors"
 	"github.com/Jinnrry/pmail/pkg/id"
-	"github.com/Jinnrry/pmail/pkg/password"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
 )
 
 type pop3Action struct {
+	users   *app.UserService
+	queries *app.EmailQueryService
+	emails  *app.EmailService
 }
 
 // Custom 非标准命令
@@ -102,14 +102,8 @@ func (a pop3Action) Pass(session *gopop.Session, pwd string) error {
 
 	log.WithContext(session.Ctx).Debugf("POP3 PASS user=%s", session.User)
 
-	var user models.User
-
-	_, err := app.Persistence.FindTokenAccount(session.User, &user)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.WithContext(session.Ctx.(*context.Context)).Errorf("%+v", err)
-	}
-
-	if user.ID > 0 && password.Verify(user.Password, pwd) {
+	user, err := a.users.Authenticate(session.User, pwd)
+	if err == nil && user != nil && user.ID > 0 {
 		session.Status = gopop.TRANSACTION
 
 		session.Ctx.(*context.Context).UserID = user.ID
@@ -138,15 +132,8 @@ func (a pop3Action) Apop(session *gopop.Session, username, digest string) error 
 
 	log.WithContext(session.Ctx).Debugf("POP3 APOP %s %s", username, digest)
 
-	var user models.User
-
-	_, err := app.Persistence.FindAPOPAccount(username, &user)
-
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.WithContext(session.Ctx.(*context.Context)).Errorf("%+v", err)
-	}
-
-	if user.ID > 0 && digest == password.Md5Encode(user.Password) {
+	user, err := a.users.AuthenticateAPOP(username, digest)
+	if err == nil && user != nil && user.ID > 0 {
 		session.User = username
 		session.Status = gopop.TRANSACTION
 
@@ -165,7 +152,7 @@ func (a pop3Action) Apop(session *gopop.Session, username, digest string) error 
 func (a pop3Action) Stat(session *gopop.Session) (msgNum, msgSize int64, err error) {
 	log.WithContext(session.Ctx).Debugf("POP3 CMD: STAT")
 
-	num, size := app.MailboxStat(session.Ctx.(*context.Context))
+	num, size := a.queries.MailboxStat(session.Ctx.(*context.Context))
 	log.WithContext(session.Ctx).Debugf("POP3 STAT RETURT : %d,%d", num, size)
 	return num, size, nil
 }
@@ -187,7 +174,7 @@ func (a pop3Action) Uidl(session *gopop.Session, msg string) ([]gopop.UidlItem, 
 
 	var res []pop3ListItem
 
-	emailList, _ := app.ListEmails(session.Ctx.(*context.Context), dto.SearchTag{Type: consts.EmailTypeReceive, Status: -1, GroupId: -1}, "", true, 0, 99999)
+	emailList, _ := a.queries.List(session.Ctx.(*context.Context), dto.SearchTag{Type: consts.EmailTypeReceive, Status: -1, GroupId: -1}, "", true, 0, 99999)
 	for _, info := range emailList {
 		res = append(res, pop3ListItem{
 			Id:   cast.ToInt64(info.Id),
@@ -224,7 +211,7 @@ func (a pop3Action) List(session *gopop.Session, msg string) ([]gopop.MailInfo, 
 	}
 
 	if listId != 0 {
-		info, err := app.EmailDetailGetEmailDetail(session.Ctx.(*context.Context), listId, false)
+		info, err := a.queries.Detail(session.Ctx.(*context.Context), listId, false)
 		if err != nil {
 			return nil, err
 		}
@@ -237,7 +224,7 @@ func (a pop3Action) List(session *gopop.Session, msg string) ([]gopop.MailInfo, 
 		}
 		res = append(res, item)
 	} else {
-		emailList, _ := app.ListEmails(session.Ctx.(*context.Context), dto.SearchTag{Type: consts.EmailTypeReceive, Status: -1, GroupId: -1}, "", true, 0, 99999)
+		emailList, _ := a.queries.List(session.Ctx.(*context.Context), dto.SearchTag{Type: consts.EmailTypeReceive, Status: -1, GroupId: -1}, "", true, 0, 99999)
 		for _, info := range emailList {
 			item := pop3ListItem{
 				Id:   cast.ToInt64(info.Id),
@@ -264,7 +251,7 @@ func (a pop3Action) List(session *gopop.Session, msg string) ([]gopop.MailInfo, 
 // Retr 获取邮件详情
 func (a pop3Action) Retr(session *gopop.Session, id int64) (string, int64, error) {
 	log.WithContext(session.Ctx).Debugf("POP3 CMD: RETR ,Args:%d", id)
-	email, err := app.EmailDetailGetEmailDetail(session.Ctx.(*context.Context), cast.ToInt(id), false)
+	email, err := a.queries.Detail(session.Ctx.(*context.Context), cast.ToInt(id), false)
 	if err != nil {
 		log.WithContext(session.Ctx.(*context.Context)).Errorf("%+v", err)
 		return "", 0, errors.New("server error")
@@ -293,7 +280,7 @@ func (a pop3Action) Rest(session *gopop.Session) error {
 
 func (a pop3Action) Top(session *gopop.Session, id int64, n int) (string, error) {
 	log.WithContext(session.Ctx).Debugf("POP3 CMD: TOP %d %d", id, n)
-	email, err := app.EmailDetailGetEmailDetail(session.Ctx.(*context.Context), cast.ToInt(id), false)
+	email, err := a.queries.Detail(session.Ctx.(*context.Context), cast.ToInt(id), false)
 	if err != nil {
 		log.WithContext(session.Ctx.(*context.Context)).Errorf("%+v", err)
 		return "", errors2.New("password error")
@@ -332,7 +319,7 @@ func (a pop3Action) Quit(session *gopop.Session) error {
 		for _, delId := range session.DeleteIds {
 			DelIds = append(DelIds, cast.ToInt(delId))
 		}
-		app.EmailDeleteDelEmail(session.Ctx.(*context.Context), DelIds, false)
+		a.emails.Delete(session.Ctx.(*context.Context), DelIds, false)
 	}
 
 	return nil

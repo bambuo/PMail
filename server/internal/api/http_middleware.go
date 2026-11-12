@@ -7,7 +7,6 @@ import (
 	"fmt"
 	olog "log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/Jinnrry/pmail/config"
@@ -16,7 +15,6 @@ import (
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/context"
 	"github.com/Jinnrry/pmail/pkg/id"
-	"github.com/Jinnrry/pmail/pkg/password"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
@@ -111,9 +109,9 @@ func httpServerContextIterceptor(h HTTPHandlerFunc) http.HandlerFunc {
 			if userInfo.ID == 0 {
 				token := r.Header.Get("Token")
 				if token != "" {
-					user, err := httpServerGetLoginInfoByToken(token)
-					if user.ID > 0 && err == nil {
-						if app.MFAIsEnabled(&user) {
+					user, err := app.UserSvc.VerifyToken(token)
+					if err == nil && user != nil && user.ID > 0 {
+						if app.MFAIsEnabled(user) {
 							response.NewErrorResponse(response.NeedLogin, app.TextGetText(ctx.Lang, "mfa_login_required"), "").FPrint(w)
 							return
 						}
@@ -140,34 +138,4 @@ func httpServerContextIterceptor(h HTTPHandlerFunc) http.HandlerFunc {
 		}
 		h(ctx, w, r)
 	}
-}
-
-/*
-Token 格式：  {account}:md5(md5(md5(password+"pmail")+"pmail2023")+{Unix timestamp}):{Unix timestamp}
-比如：         admin::
-*/
-func httpServerGetLoginInfoByToken(token string) (models.User, error) {
-	ret := models.User{}
-	data := strings.Split(token, ":")
-	if len(data) != 3 {
-		return ret, errors.New("token format error")
-	}
-	account := data[0]
-	encodePwd := data[1]
-	requestTimeStamp := cast.ToInt64(data[2])
-	if time.Now().Unix()-requestTimeStamp >= 5 {
-		return ret, errors.New("token expired")
-	}
-	var user models.User
-	app.Persistence.FindTokenAccount(account, &user)
-
-	if user.ID == 0 {
-		return ret, errors.New("account or password error")
-	}
-	tokenPwd := password.Md5Encode(fmt.Sprintf("%s%d", user.Password, requestTimeStamp))
-	if tokenPwd != encodePwd {
-		return ret, errors.New("account or password error")
-	}
-
-	return user, nil
 }

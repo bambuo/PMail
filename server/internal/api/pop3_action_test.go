@@ -8,6 +8,7 @@ import (
 
 	"github.com/Jinnrry/gopop"
 	"github.com/Jinnrry/pmail/config"
+	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/Jinnrry/pmail/internal/infra"
 	"github.com/Jinnrry/pmail/pkg/context"
 	"github.com/emersion/go-message/mail"
@@ -19,7 +20,7 @@ func Test_action_Retr(t *testing.T) {
 	config.Instance.DbDSN = config.ROOT_PATH + "./config/pmail_temp.db"
 	infra.InitDatabase("")
 
-	a := pop3Action{}
+	a := pop3Action{users: app.UserSvc, queries: app.EmailQuerySvc, emails: app.EmailSvc}
 	session := &gopop.Session{
 		Ctx: &context.Context{
 			UserID: 1,

@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func EmailDetailFindUE(ctx *context.Context, groupName string, req app.EmailListImapListReq, uid bool) []models.UserEmail {
+func (r PersistenceRepository) EmailDetailFindUE(ctx *context.Context, groupName string, req app.EmailListImapListReq, uid bool) []models.UserEmail {
 	var ue []models.UserEmail
 	if uid {
 		err := PersistenceRepository{}.FindUserEmailsByUID(req.UidList, &ue)

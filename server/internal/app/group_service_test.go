@@ -21,6 +21,6 @@ func TestGetGroupStatus(t *testing.T) {
 		UserName:    "admin",
 		UserAccount: "admin",
 	}
-	ret, _ := app.GetGroupStatus(ctx, "INBOX", []string{"MESSAGES", "UIDNEXT", "UIDVALIDITY", "UNSEEN"})
+	ret, _ := app.GroupSvc.Status(ctx, "INBOX", []string{"MESSAGES", "UIDNEXT", "UIDVALIDITY", "UNSEEN"})
 	fmt.Println(ret)
 }

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/emersion/go-imap/v2"
 	"github.com/spf13/cast"
 )
@@ -21,7 +20,7 @@ func (s *imapServerSession) Status(mailbox string, options *imap.StatusOptions) 
 		category = append(category, "UNSEEN")
 	}
 
-	_, data := app.GetGroupStatus(s.ctx, mailbox, category)
+	_, data := s.server.groups.Status(s.ctx, mailbox, category)
 
 	numMessages := cast.ToUint32(data["MESSAGES"])
 	numUnseen := cast.ToUint32(data["UNSEEN"])

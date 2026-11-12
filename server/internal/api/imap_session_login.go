@@ -1,13 +1,8 @@
 package api
 
 import (
-	"database/sql"
 	"strings"
 
-	"github.com/Jinnrry/pmail/internal/app"
-	"github.com/Jinnrry/pmail/models"
-	"github.com/Jinnrry/pmail/pkg/errors"
-	"github.com/Jinnrry/pmail/pkg/password"
 	"github.com/emersion/go-imap/v2"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,15 +13,8 @@ func (s *imapServerSession) Login(username, pwd string) error {
 		username = args[0]
 	}
 
-	var user models.User
-
-	_, err := app.Persistence.FindTokenAccount(username, &user)
-
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.WithContext(s.ctx).Errorf("%+v", err)
-	}
-
-	if user.ID > 0 && password.Verify(user.Password, pwd) {
+	user, err := s.server.users.Authenticate(username, pwd)
+	if err == nil && user != nil && user.ID > 0 {
 		s.status = IMAPAUTHORIZED
 
 		s.ctx.UserID = user.ID

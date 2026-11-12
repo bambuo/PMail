@@ -15,13 +15,26 @@ import (
 	"github.com/spf13/cast"
 )
 
-func RuleGetAllRules(ctx *context.Context, userId int) []*dto.Rule {
+// RuleService 收信规则用例：查询、匹配、动作执行与转发。
+type RuleService struct {
+	rules  RulePersistence
+	emails EmailPersistence
+}
+
+func NewRuleService(rules RulePersistence, emails EmailPersistence) *RuleService {
+	return &RuleService{rules: rules, emails: emails}
+}
+
+// RuleSvc 收信规则服务实例，由 bootstrap.BindDependencies 装配
+var RuleSvc *RuleService
+
+func (s *RuleService) GetAll(ctx *context.Context, userId int) []*dto.Rule {
 	var res []*models.Rule
 	var err error
 	if userId == 0 {
 		return nil
 	} else {
-		err = Persistence.ListUserRules(userId, &res)
+		err = s.rules.ListUserRules(userId, &res)
 
 	}
 
@@ -36,7 +49,7 @@ func RuleGetAllRules(ctx *context.Context, userId int) []*dto.Rule {
 	return ret
 }
 
-func RuleMatchRule(ctx *context.Context, rule *dto.Rule, email *parsemail.Email) bool {
+func (s *RuleService) Match(ctx *context.Context, rule *dto.Rule, email *parsemail.Email) bool {
 
 	for _, r := range rule.Rules {
 		var m domain.RuleMatch
@@ -65,36 +78,36 @@ func RuleMatchRule(ctx *context.Context, rule *dto.Rule, email *parsemail.Email)
 	return true
 }
 
-func RuleDoRule(ctx *context.Context, rule *dto.Rule, email *parsemail.Email, user *models.User, rawEmailData []byte) {
+func (s *RuleService) Apply(ctx *context.Context, rule *dto.Rule, email *parsemail.Email, user *models.User, rawEmailData []byte) {
 	log.WithContext(ctx).Debugf("执行规则:%s", rule.Name)
 
 	switch rule.Action {
 	case dto.READ:
 		if email.MessageId > 0 {
-			_, err := Persistence.MarkRuleEmailRead(email.MessageId, rule.UserId)
+			_, err := s.emails.MarkRuleEmailRead(email.MessageId, rule.UserId)
 			if err != nil {
 				log.WithContext(ctx).Errorf("sqlERror :%v", err)
 			}
 		}
 	case dto.DELETE:
-		_, err := Persistence.MarkRuleEmailDeleted(email.MessageId, rule.UserId)
+		_, err := s.emails.MarkRuleEmailDeleted(email.MessageId, rule.UserId)
 		if err != nil {
 			log.WithContext(ctx).Errorf("sqlERror :%v", err)
 		}
 	case dto.FORWARD:
-		err := ForwardEmail(ctx, email, rule.Params, user, rawEmailData)
+		err := s.Forward(ctx, email, rule.Params, user, rawEmailData)
 		if err != nil {
 			log.WithContext(ctx).Errorf("Forward Error:%v", err)
 		} else {
 			log.WithContext(ctx).Infof("Forward Success:%s@%s -> %s", user.Account, config.Instance.Domains[0], rule.Params)
 		}
 	case dto.MOVE:
-		ruleDoMove(ctx, rule, email, user)
+		s.doMove(ctx, rule, email, user)
 	}
 
 }
 
-func ForwardEmail(ctx *context.Context, email *parsemail.Email, forwardAddress string, user *models.User, rawEmailData []byte) error {
+func (s *RuleService) Forward(ctx *context.Context, email *parsemail.Email, forwardAddress string, user *models.User, rawEmailData []byte) error {
 	forwardUser := parsemail.BuilderUser(forwardAddress)
 	if forwardUser == nil || forwardUser.EmailAddress == "" {
 		return fmt.Errorf("invalid forward address: %s", forwardAddress)
@@ -109,7 +122,7 @@ func ForwardEmail(ctx *context.Context, email *parsemail.Email, forwardAddress s
 		if domain.IsSelfForward(account, user.Account) {
 			return fmt.Errorf("loop forwarding to self: %s", forwardAddress)
 		}
-		return ruleForwardToLocalUser(ctx, email, account, forwardAddress)
+		return s.forwardToLocalUser(ctx, email, account, forwardAddress)
 	}
 
 	if len(rawEmailData) > 0 {
@@ -122,13 +135,13 @@ func ForwardEmail(ctx *context.Context, email *parsemail.Email, forwardAddress s
 	return send.Forward(ctx, email, forwardAddress, user)
 }
 
-func ruleForwardToLocalUser(ctx *context.Context, email *parsemail.Email, account, forwardAddress string) error {
+func (s *RuleService) forwardToLocalUser(ctx *context.Context, email *parsemail.Email, account, forwardAddress string) error {
 	if email.MessageId <= 0 {
 		return fmt.Errorf("email has not been saved before local forwarding")
 	}
 
 	var user models.User
-	has, err := Persistence.FindLocalForwardAccount(account, &user)
+	has, err := s.emails.FindLocalForwardAccount(account, &user)
 
 	if err != nil {
 		return err
@@ -138,7 +151,7 @@ func ruleForwardToLocalUser(ctx *context.Context, email *parsemail.Email, accoun
 	}
 
 	var ue models.UserEmail
-	has, err = Persistence.FindLocalForwardOwnership(email.MessageId, user.ID, &ue)
+	has, err = s.emails.FindLocalForwardOwnership(email.MessageId, user.ID, &ue)
 
 	if err != nil {
 		return err
@@ -147,7 +160,7 @@ func ruleForwardToLocalUser(ctx *context.Context, email *parsemail.Email, accoun
 		return nil
 	}
 
-	_, err = Persistence.InsertLocalForwardOwnership(user.ID, email.MessageId, email.Status)
+	_, err = s.emails.InsertLocalForwardOwnership(user.ID, email.MessageId, email.Status)
 
 	return err
 }
@@ -161,50 +174,50 @@ func ruleIsLocalDomain(domain string) bool {
 	return strings.EqualFold(domain, config.Instance.Domain)
 }
 
-func ruleDoMove(ctx *context.Context, rule *dto.Rule, email *parsemail.Email, user *models.User) {
+func (s *RuleService) doMove(ctx *context.Context, rule *dto.Rule, email *parsemail.Email, user *models.User) {
 
 	groupId := cast.ToInt(rule.Params)
 	switch groupId {
 	case models.INBOX:
-		_, err := Persistence.SetEmailReceiveType(email.MessageId)
+		_, err := s.emails.SetEmailReceiveType(email.MessageId)
 
 		if err != nil {
 			log.WithContext(ctx).Errorf("sqlERror :%v", err)
 		}
 
-		_, err = Persistence.ResetEmailOwnerMailbox(email.MessageId, rule.UserId)
+		_, err = s.emails.ResetEmailOwnerMailbox(email.MessageId, rule.UserId)
 
 		if err != nil {
 			log.WithContext(ctx).Errorf("sqlERror :%v", err)
 		}
 	case models.Sent:
-		_, err := Persistence.SetEmailSendType(email.MessageId)
+		_, err := s.emails.SetEmailSendType(email.MessageId)
 
 		if err != nil {
 			log.WithContext(ctx).Errorf("sqlERror :%v", err)
 		}
 
-		_, err = Persistence.ResetEmailOwnerMailbox(email.MessageId, rule.UserId)
+		_, err = s.emails.ResetEmailOwnerMailbox(email.MessageId, rule.UserId)
 
 		if err != nil {
 			log.WithContext(ctx).Errorf("sqlERror :%v", err)
 		}
 
 	case models.Drafts:
-		_, err := Persistence.SetOwnerDraftMailbox(email.MessageId, rule.UserId)
+		_, err := s.emails.SetOwnerDraftMailbox(email.MessageId, rule.UserId)
 
 		if err != nil {
 			log.WithContext(ctx).Errorf("sqlERror :%v", err)
 		}
 
 	case models.Deleted:
-		_, err := Persistence.SetOwnerDeletedMailbox(email.MessageId, rule.UserId)
+		_, err := s.emails.SetOwnerDeletedMailbox(email.MessageId, rule.UserId)
 
 		if err != nil {
 			log.WithContext(ctx).Errorf("sqlERror :%v", err)
 		}
 	case models.Junk:
-		_, err := Persistence.SetOwnerJunkMailbox(email.MessageId, rule.UserId)
+		_, err := s.emails.SetOwnerJunkMailbox(email.MessageId, rule.UserId)
 
 		if err != nil {
 			log.WithContext(ctx).Errorf("sqlERror :%v", err)
@@ -212,10 +225,24 @@ func ruleDoMove(ctx *context.Context, rule *dto.Rule, email *parsemail.Email, us
 
 	default:
 
-		_, err := Persistence.SetOwnerCustomGroup(email.MessageId, rule.UserId, groupId)
+		_, err := s.emails.SetOwnerCustomGroup(email.MessageId, rule.UserId, groupId)
 		if err != nil {
 			log.WithContext(ctx).Errorf("sqlERror :%v", err)
 		}
 	}
 
+}
+
+func (s *RuleService) Upsert(ctx *context.Context, userID int, rule *models.Rule) error {
+	if rule.Id > 0 {
+		_, err := s.rules.UpdateUserRule(ctx, rule.Name, rule.Value, rule.Action, rule.Params, rule.Sort, rule.Id, userID)
+		return err
+	}
+	_, err := s.rules.InsertUserRule(ctx, rule.Name, rule.Value, userID, rule.Action, rule.Params, rule.Sort)
+	return err
+}
+
+func (s *RuleService) Delete(ctx *context.Context, ruleID, userID int) error {
+	_, err := s.rules.DeleteUserRule(ctx, ruleID, userID)
+	return err
 }

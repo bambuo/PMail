@@ -3,7 +3,6 @@ package api
 import (
 	"log/slog"
 
-	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/emersion/go-imap/v2"
 	"github.com/emersion/go-imap/v2/imapserver"
 	"github.com/spf13/cast"
@@ -35,7 +34,7 @@ func (s *imapServerSession) Expunge(w *imapserver.ExpungeWriter, uids *imap.UIDS
 
 	slog.Debug("DeleteUidList:", slog.Any("uidList", uidList))
 
-	err := app.EmailDeleteDelByUID(s.ctx, uidList)
+	err := s.server.emails.DeleteByUID(s.ctx, uidList)
 	s.deleteUidList = []int{}
 	if err != nil {
 		return &imap.Error{

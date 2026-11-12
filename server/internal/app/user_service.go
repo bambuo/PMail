@@ -2,6 +2,9 @@ package app
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/password"
@@ -33,6 +36,46 @@ func (s *UserService) Authenticate(account, plain string) (*models.User, error) 
 		if err := s.updatePasswordHash(user.ID, password.Hash(plain)); err != nil {
 			return nil, err
 		}
+	}
+	return &user, nil
+}
+
+// AuthenticateAPOP 校验 APOP 摘要登录（历史协议，摘要基于存量口令哈希）。
+func (s *UserService) AuthenticateAPOP(account, digest string) (*models.User, error) {
+	var user models.User
+	if _, err := s.users.FindAPOPAccount(account, &user); err != nil {
+		return nil, err
+	}
+	if user.ID == 0 || digest != password.Md5Encode(user.Password) {
+		return nil, fmt.Errorf("account or password error")
+	}
+	return &user, nil
+}
+
+// VerifyToken 校验 5 秒时效登录 Token，返回对应账号。
+func (s *UserService) VerifyToken(token string) (*models.User, error) {
+	data := strings.Split(token, ":")
+	if len(data) != 3 {
+		return nil, fmt.Errorf("token format error")
+	}
+	account, encodedPwd := data[0], data[1]
+	requestTimeStamp, err := strconv.ParseInt(data[2], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("token format error")
+	}
+	if time.Now().Unix()-requestTimeStamp >= 5 {
+		return nil, fmt.Errorf("token expired")
+	}
+	var user models.User
+	if _, err := s.users.FindTokenAccount(account, &user); err != nil {
+		return nil, err
+	}
+	if user.ID == 0 {
+		return nil, fmt.Errorf("account or password error")
+	}
+	tokenPwd := password.Md5Encode(fmt.Sprintf("%s%d", user.Password, requestTimeStamp))
+	if tokenPwd != encodedPwd {
+		return nil, fmt.Errorf("account or password error")
 	}
 	return &user, nil
 }

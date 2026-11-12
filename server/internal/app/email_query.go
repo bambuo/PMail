@@ -1,22 +1,27 @@
 package app
 
 import (
-	"github.com/Jinnrry/pmail/internal/domain"
+	"time"
 
 	"github.com/Jinnrry/pmail/dto"
 	"github.com/Jinnrry/pmail/dto/response"
+	"github.com/Jinnrry/pmail/internal/domain"
+	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/context"
 )
 
-func ListEmails(ctx *context.Context, tagInfo dto.SearchTag, keyword string, pop3List bool, offset, limit int) (emailList []*response.EmailResponseData, total int64) {
-	return QueryEmailList(ctx, tagInfo, keyword, pop3List, offset, limit)
+// EmailQueryService 邮件读取用例：列表、详情、搜索、附件与访问控制。
+type EmailQueryService struct {
+	emails  EmailPersistence
+	queries EmailQueryPersistence
 }
 
-// 发件箱不展示已删除的邮件
+func NewEmailQueryService(emails EmailPersistence, queries EmailQueryPersistence) *EmailQueryService {
+	return &EmailQueryService{emails: emails, queries: queries}
+}
 
-type EmailStatRow = domain.EmailStatRow
-
-// Stat 查询邮件总数和大小
+// EmailQuerySvc 邮件读取服务实例，由 bootstrap.BindDependencies 装配
+var EmailQuerySvc *EmailQueryService
 
 type EmailListImapListReq struct {
 	UidList []int
@@ -24,15 +29,32 @@ type EmailListImapListReq struct {
 	End     int
 }
 
-var QueryEmailList func(*context.Context, dto.SearchTag, string, bool, int, int) ([]*response.EmailResponseData, int64)
-var QueryMailboxStat func(*context.Context) (int64, int64)
-var QueryUIDList func(*context.Context, string, int, int, []int) []*response.UserEmailUIDData
-var QueryMailboxEmails func(*context.Context, string, EmailListImapListReq, bool) []*response.EmailResponseData
+type EmailStatRow = domain.EmailStatRow
 
-func MailboxStat(ctx *context.Context) (int64, int64) { return QueryMailboxStat(ctx) }
-func EmailListGetUEListByUID(ctx *context.Context, name string, start, end int, ids []int) []*response.UserEmailUIDData {
-	return QueryUIDList(ctx, name, start, end, ids)
+func (s *EmailQueryService) List(ctx *context.Context, tagInfo dto.SearchTag, keyword string, pop3List bool, offset, limit int) (emailList []*response.EmailResponseData, total int64) {
+	return s.queries.QueryEmailList(ctx, tagInfo, keyword, pop3List, offset, limit)
 }
-func EmailListGetEmailListByGroup(ctx *context.Context, name string, req EmailListImapListReq, uid bool) []*response.EmailResponseData {
-	return QueryMailboxEmails(ctx, name, req, uid)
+
+func (s *EmailQueryService) MailboxStat(ctx *context.Context) (int64, int64) {
+	return s.queries.MailboxStat(ctx)
+}
+
+func (s *EmailQueryService) ListByUID(ctx *context.Context, groupName string, start, end int, ids []int) []*response.UserEmailUIDData {
+	return s.queries.EmailListGetUEListByUID(ctx, groupName, start, end, ids)
+}
+
+func (s *EmailQueryService) ListByGroup(ctx *context.Context, groupName string, req EmailListImapListReq, uid bool) []*response.EmailResponseData {
+	return s.queries.EmailListGetEmailListByGroup(ctx, groupName, req, uid)
+}
+
+func (s *EmailQueryService) FindUserEmails(ctx *context.Context, groupName string, req EmailListImapListReq, uid bool) []models.UserEmail {
+	return s.queries.EmailDetailFindUE(ctx, groupName, req, uid)
+}
+
+func (s *EmailQueryService) RecentUserEmails(ctx *context.Context, since time.Time) []models.UserEmail {
+	var ues []models.UserEmail
+	if err := s.emails.FindRecentUserEmails(ctx.UserID, since, &ues); err != nil {
+		return nil
+	}
+	return ues
 }

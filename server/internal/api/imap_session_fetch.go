@@ -114,21 +114,21 @@ func (s *imapServerSession) Fetch(w *imapserver.FetchWriter, numSet imap.NumSet,
 	case imap.SeqSet:
 		seqSet := numSet.(imap.SeqSet)
 		for _, seq := range seqSet {
-			emailList := app.EmailListGetEmailListByGroup(s.ctx, s.currentMailbox, app.EmailListImapListReq{
+			emailList := s.server.queries.ListByGroup(s.ctx, s.currentMailbox, app.EmailListImapListReq{
 				Star: cast.ToInt(seq.Start),
 				End:  cast.ToInt(seq.Stop),
 			}, false)
-			imapWrite(s.ctx, w, emailList, options)
+			s.writeFetch(s.ctx, w, emailList, options)
 		}
 
 	case imap.UIDSet:
 		uidSet := numSet.(imap.UIDSet)
 		for _, uid := range uidSet {
-			emailList := app.EmailListGetEmailListByGroup(s.ctx, s.currentMailbox, app.EmailListImapListReq{
+			emailList := s.server.queries.ListByGroup(s.ctx, s.currentMailbox, app.EmailListImapListReq{
 				Star: cast.ToInt(uint32(uid.Start)),
 				End:  cast.ToInt(uint32(uid.Stop)),
 			}, true)
-			imapWrite(s.ctx, w, emailList, options)
+			s.writeFetch(s.ctx, w, emailList, options)
 		}
 	}
 	return nil
@@ -222,7 +222,7 @@ func imapBsMixedWithAttachments(alt *imap.BodyStructureMultiPart, extend bool, a
 	}
 }
 
-func imapWrite(ctx *context.Context, w *imapserver.FetchWriter, emailList []*response.EmailResponseData, options *imap.FetchOptions) {
+func (s *imapServerSession) writeFetch(ctx *context.Context, w *imapserver.FetchWriter, emailList []*response.EmailResponseData, options *imap.FetchOptions) {
 	for _, email := range emailList {
 		writer := w.CreateMessage(cast.ToUint32(email.SerialNumber))
 
@@ -271,7 +271,7 @@ func imapWrite(ctx *context.Context, w *imapserver.FetchWriter, emailList []*res
 		}
 		for _, section := range options.BodySection {
 			if !section.Peek {
-				app.EmailDetailMakeRead(ctx, email.Id, true)
+				s.server.emails.MarkRead(ctx, email.Id, true)
 			}
 			emailContent := traEmail.BuildBytes(ctx, false)
 

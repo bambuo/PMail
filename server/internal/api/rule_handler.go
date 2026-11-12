@@ -8,21 +8,19 @@ import (
 	"github.com/Jinnrry/pmail/dto"
 	"github.com/Jinnrry/pmail/dto/response"
 	"github.com/Jinnrry/pmail/internal/app"
-	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/address"
 	"github.com/Jinnrry/pmail/pkg/array"
 	"github.com/Jinnrry/pmail/pkg/context"
-	"github.com/Jinnrry/pmail/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
-// RuleHandler 收信规则接口，绑定规则持久化端口
+// RuleHandler 收信规则接口，绑定规则用例服务
 type RuleHandler struct {
-	rules app.RulePersistence
+	rules *app.RuleService
 }
 
 func (h *RuleHandler) GetRule(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
-	res := app.RuleGetAllRules(ctx, ctx.UserID)
+	res := h.rules.GetAll(ctx, ctx.UserID)
 	response.NewSuccessResponse(res).FPrint(w)
 }
 
@@ -54,30 +52,12 @@ func (h *RuleHandler) UpsertRule(ctx *context.Context, w http.ResponseWriter, re
 		}
 	}
 
-	err = h.save(ctx, data.Encode())
+	err = h.rules.Upsert(ctx, ctx.UserID, data.Encode())
 	if err != nil {
 		response.NewErrorResponse(response.ServerError, "server error", err).FPrint(w)
 		return
 	}
 	response.NewSuccessResponse("succ").FPrint(w)
-}
-
-func (h *RuleHandler) save(ctx *context.Context, p *models.Rule) error {
-
-	if p.Id > 0 {
-		_, err := h.rules.UpdateUserRule(ctx, p.Name, p.Value, p.Action, p.Params, p.Sort, p.Id, ctx.UserID)
-		if err != nil {
-			return errors.Wrap(err)
-		}
-		return nil
-	} else {
-		_, err := h.rules.InsertUserRule(ctx, p.Name, p.Value, ctx.UserID, p.Action, p.Params, p.Sort)
-		if err != nil {
-			return errors.Wrap(err)
-		}
-		return nil
-	}
-
 }
 
 type httpDelRuleReq struct {
@@ -103,7 +83,7 @@ func (h *RuleHandler) DelRule(ctx *context.Context, w http.ResponseWriter, req *
 		return
 	}
 
-	_, err = h.rules.DeleteUserRule(ctx, data.Id, ctx.UserID)
+	err = h.rules.Delete(ctx, data.Id, ctx.UserID)
 	if err != nil {
 		response.NewErrorResponse(response.ServerError, "unknown error", err).FPrint(w)
 		return

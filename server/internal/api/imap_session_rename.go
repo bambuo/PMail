@@ -8,7 +8,7 @@ import (
 )
 
 func (s *imapServerSession) Rename(mailbox, newName string) error {
-	if app.GroupIsDefaultBox(mailbox) {
+	if app.IsDefaultBox(mailbox) {
 		return &imap.Error{
 			Type: imap.StatusResponseTypeNo,
 			Text: "This mailbox does not support rename.",
@@ -23,7 +23,7 @@ func (s *imapServerSession) Rename(mailbox, newName string) error {
 
 	newGroupName := newGroupPath[len(newGroupPath)-1]
 
-	err := app.GroupRename(s.ctx, oldGroupName, newGroupName)
+	err := s.server.groups.Rename(s.ctx, oldGroupName, newGroupName)
 
 	if err != nil {
 		return &imap.Error{

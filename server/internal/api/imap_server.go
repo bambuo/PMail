@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/Jinnrry/pmail/pkg/context"
 	"github.com/Jinnrry/pmail/pkg/id"
 	"github.com/emersion/go-imap/v2"
@@ -16,12 +17,21 @@ import (
 //
 // A server contains a list of users.
 type IMAPServer struct {
-	mutex sync.Mutex
+	mutex   sync.Mutex
+	users   *app.UserService
+	queries *app.EmailQueryService
+	emails  *app.EmailService
+	groups  *app.GroupService
 }
 
 // NewServer creates a new server.
 func IMAPNewServer() *IMAPServer {
-	return &IMAPServer{}
+	return &IMAPServer{
+		users:   app.UserSvc,
+		queries: app.EmailQuerySvc,
+		emails:  app.EmailSvc,
+		groups:  app.GroupSvc,
+	}
 }
 
 type IMAPStatus int8

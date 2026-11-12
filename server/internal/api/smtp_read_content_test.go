@@ -130,6 +130,7 @@ PGRpdiBkaXI9Imx0ciI+PGRpdj7mraPmlofmtYvor5UyPC9kaXY+PC9kaXY+DQo=
 `
 
 	s := SMTPSession{
+		Service:       app.EmailSvc,
 		RemoteAddress: net.TCPAddrFromAddrPort(netip.AddrPortFrom(netip.AddrFrom4([4]byte{}), 25)),
 		Ctx:           &context.Context{},
 		To:            []string{"xfox@linuxuser.site"},
@@ -177,6 +178,7 @@ Content-Type: text/html
 --3c13260efb7bd8bad8315c21215489fe283f36cdf82813674f6e11215f6c--
 `
 	s := SMTPSession{
+		Service:       app.EmailSvc,
 		RemoteAddress: net.TCPAddrFromAddrPort(netip.AddrPortFrom(netip.AddrFrom4([4]byte{}), 25)),
 		Ctx: &context.Context{
 			UserID:      0,
@@ -342,6 +344,7 @@ Content-Type: text/html
 --bdfa9bf94e22e218105281e06bd59bd6df3ce70e71367bf49fbe73301af3--`
 
 	s := SMTPSession{
+		Service:       app.EmailSvc,
 		RemoteAddress: net.TCPAddrFromAddrPort(netip.AddrPortFrom(netip.AddrFrom4([4]byte{}), 25)),
 		Ctx:           &context.Context{},
 	}
@@ -393,6 +396,7 @@ Content-Type: text/html
 --9e33a130a8a976102a93e296d6408d228e151f7841ca9ee0d777234fd6f3--`
 
 	s := SMTPSession{
+		Service:       app.EmailSvc,
 		RemoteAddress: net.TCPAddrFromAddrPort(netip.AddrPortFrom(netip.AddrFrom4([4]byte{}), 25)),
 		Ctx:           &context.Context{},
 	}
@@ -442,6 +446,7 @@ Content-Type: text/html
 --bdfa9bf94e22e218105281e06bd59bd6df3ce70e71367bf49fbe73301af3--`
 
 	s := SMTPSession{
+		Service:       app.EmailSvc,
 		RemoteAddress: net.TCPAddrFromAddrPort(netip.AddrPortFrom(netip.AddrFrom4([4]byte{}), 25)),
 		Ctx:           &context.Context{},
 	}
@@ -485,6 +490,7 @@ Pui/meaYr+S4gOWwgeadpeiHqlJlbGF4RHJhbWHnmoTmoKHpqozpgq7ku7Ys55So5LqO5qCh6aqM
 
 --6edc2ef285d93010a080caccc858c67b--`
 	s := SMTPSession{
+		Service:       app.EmailSvc,
 		RemoteAddress: net.TCPAddrFromAddrPort(netip.AddrPortFrom(netip.AddrFrom4([4]byte{}), 25)),
 		Ctx:           &context.Context{},
 	}
@@ -533,6 +539,7 @@ Content-Type: text/html
 --c84d60b253aa6caee345c73e717ad59b1975448bbdfad7a23ac4d76e022d--`
 
 	s := SMTPSession{
+		Service:       app.EmailSvc,
 		RemoteAddress: net.TCPAddrFromAddrPort(netip.AddrPortFrom(netip.AddrFrom4([4]byte{}), 25)),
 		Ctx:           &context.Context{},
 	}
@@ -567,6 +574,7 @@ PGRpdj7ov5nph4zmmK/lhoXlrrk8L2Rpdj48ZGl2PjwhLS1lbXB0eXNpZ24tLT48L2Rpdj4=
 ------=_Part_174_107154538.1712718674768--`
 
 	s := SMTPSession{
+		Service:       app.EmailSvc,
 		RemoteAddress: net.TCPAddrFromAddrPort(netip.AddrPortFrom(netip.AddrFrom4([4]byte{}), 25)),
 		Ctx:           &context.Context{},
 	}

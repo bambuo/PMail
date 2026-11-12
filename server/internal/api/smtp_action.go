@@ -1,15 +1,12 @@
 package api
 
 import (
-	"database/sql"
 	"errors"
 	"strings"
 
 	"github.com/Jinnrry/pmail/internal/app"
-	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/context"
 	"github.com/Jinnrry/pmail/pkg/id"
-	"github.com/Jinnrry/pmail/pkg/password"
 	"github.com/emersion/go-sasl"
 	"github.com/emersion/go-smtp"
 	log "github.com/sirupsen/logrus"
@@ -28,6 +25,7 @@ func (bkd *SMTPBackend) NewSession(conn *smtp.Conn) (smtp.Session, error) {
 	return &SMTPSession{
 		RemoteAddress: remoteAddress,
 		Ctx:           ctx,
+		Service:       app.EmailSvc,
 	}, nil
 }
 
@@ -63,20 +61,13 @@ func (s *SMTPSession) AuthPlain(username, pwd string) error {
 
 	s.User = username
 
-	var user models.User
-
 	infos := strings.Split(username, "@")
 	if len(infos) > 1 {
 		username = infos[0]
 	}
 
-	_, err := app.Persistence.FindTokenAccount(username, &user)
-
-	if err != nil && err != sql.ErrNoRows {
-		log.Errorf("%+v", err)
-	}
-
-	if user.ID > 0 && password.Verify(user.Password, pwd) {
+	user, err := app.UserSvc.Authenticate(username, pwd)
+	if err == nil && user != nil && user.ID > 0 {
 		s.Ctx.UserAccount = user.Account
 		s.Ctx.UserID = user.ID
 		s.Ctx.UserName = user.Name

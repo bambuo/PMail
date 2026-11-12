@@ -24,14 +24,14 @@ type smtpOutgoingSender func(*context.Context, *parsemail.Email) (error, map[str
 
 func (s *MailSubmission) DeliverOutgoingEmail(email *parsemail.Email, sender smtpOutgoingSender) error {
 	ctx := s.Ctx
-	_, saved, err := SaveEmail(ctx, email.Size, email, ctx.UserID, int(consts.EmailTypeSend), nil, true, true)
+	_, saved, err := s.Service.Save(ctx, email.Size, email, ctx.UserID, int(consts.EmailTypeSend), nil, true, true)
 	if err != nil {
 		log.WithContext(ctx).Errorf("CRITICAL audit_event=initial_persist_failed direction=outbound msg_id=%q error=%v", email.MsgID, err)
 		return smtpLocalPersistenceSMTPError()
 	}
 
 	deliveryErr, domainErrors := sender(ctx, email)
-	smtpRunSendAfterHooks(ctx, email, domainErrors)
+	s.runSendAfterHooks(ctx, email, domainErrors)
 
 	targetStatus := consts.EmailStatusSent
 	var errorText any
@@ -40,7 +40,7 @@ func (s *MailSubmission) DeliverOutgoingEmail(email *parsemail.Email, sender smt
 		errorText = deliveryErr.Error()
 	}
 
-	if err = PersistDeliveryResult(ctx, saved.Id, targetStatus, errorText); err != nil {
+	if err = s.Service.audit.PersistDeliveryResult(ctx, saved.Id, targetStatus, errorText); err != nil {
 		log.WithContext(ctx).Errorf(
 			"CRITICAL audit_event=delivery_result_persist_failed email_id=%d msg_id=%q target_status=%d downstream_accepted=%t error=%v",
 			saved.Id, saved.MsgID, targetStatus, deliveryErr == nil, err,
@@ -50,12 +50,12 @@ func (s *MailSubmission) DeliverOutgoingEmail(email *parsemail.Email, sender smt
 	// If the remote MX accepted DATA, returning a local 451 here would cause a
 	// duplicate delivery. The persistence failure is retained as pending state
 	// and a CRITICAL log; the SMTP result must still reflect the remote result.
-	return DeliveryResultError(deliveryErr, domainErrors)
+	return s.Service.deliveryError(deliveryErr, domainErrors)
 }
 
-func smtpRunSendAfterHooks(ctx *context.Context, email *parsemail.Email, domainErrors map[string]error) {
+func (s *MailSubmission) runSendAfterHooks(ctx *context.Context, email *parsemail.Email, domainErrors map[string]error) {
 	process := async.New(ctx)
-	for _, hook := range AllHooks() {
+	for _, hook := range s.Service.hooks() {
 		if hook == nil {
 			continue
 		}
@@ -74,7 +74,7 @@ func smtpLocalPersistenceSMTPError() error {
 	}
 }
 
-func smtpResolveIncomingUsers(ctx *context.Context, email *parsemail.Email, emailType int, reallyTo []string, SPFStatus, dkimStatus bool) ([]*models.User, bool, error) {
+func (s *EmailService) resolveIncomingUsers(ctx *context.Context, email *parsemail.Email, emailType int, reallyTo []string, SPFStatus, dkimStatus bool) ([]*models.User, bool, error) {
 	if emailType != int(consts.EmailTypeReceive) {
 		return nil, false, nil
 	}
@@ -82,7 +82,7 @@ func smtpResolveIncomingUsers(ctx *context.Context, email *parsemail.Email, emai
 	accounts := smtpIncomingAccounts(email, reallyTo)
 	var users []*models.User
 	if len(accounts) > 0 {
-		if err := FindRecipientAccounts(accounts, &users); err != nil {
+		if err := s.audit.FindRecipientAccounts(accounts, &users); err != nil {
 			return nil, false, err
 		}
 	}
@@ -97,7 +97,7 @@ func smtpResolveIncomingUsers(ctx *context.Context, email *parsemail.Email, emai
 	}
 
 	log.WithContext(ctx).Infof("收件人不存在但DKIM验证通过，转交管理员: %s -> %v", email.From.EmailAddress, accounts)
-	if err := Persistence.FindAdministrators(&users); err != nil {
+	if err := s.users.FindAdministrators(&users); err != nil {
 		return nil, false, err
 	}
 	if len(users) == 0 {

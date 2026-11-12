@@ -33,7 +33,12 @@ type httpSslResponse struct {
 	Type string `json:"type"`
 }
 
-func HTTPSetup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
+// SetupHandler 初始化引导接口，委托初始化用例服务
+type SetupHandler struct {
+	setup *app.SetupService
+}
+
+func (h *SetupHandler) Setup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	reqBytes, err := io.ReadAll(req.Body)
 	if err != nil {
 		response.NewSuccessResponse("").FPrint(w)
@@ -48,7 +53,7 @@ func HTTPSetup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	}
 
 	if reqData["step"] == "database" && reqData["action"] == "get" {
-		dbType, dbDSN, err := app.SetupGetDatabaseSettings(ctx)
+		dbType, dbDSN, err := h.setup.DatabaseSettings(ctx)
 		if err != nil {
 			response.NewErrorResponse(response.ServerError, err.Error(), "").FPrint(w)
 			return
@@ -62,7 +67,7 @@ func HTTPSetup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	}
 
 	if reqData["step"] == "database" && reqData["action"] == "set" {
-		err := app.SetupSetDatabaseSettings(ctx, cast.ToString(reqData["db_type"]), cast.ToString(reqData["db_dsn"]))
+		err := h.setup.SetDatabaseSettings(ctx, cast.ToString(reqData["db_type"]), cast.ToString(reqData["db_dsn"]))
 		if err != nil {
 			response.NewErrorResponse(response.ServerError, err.Error(), "").FPrint(w)
 			return
@@ -73,7 +78,7 @@ func HTTPSetup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	}
 
 	if reqData["step"] == "password" && reqData["action"] == "get" {
-		ok, err := app.SetupGetAdminPassword(ctx)
+		ok, err := h.setup.AdminPassword(ctx)
 		if err != nil {
 			response.NewErrorResponse(response.ServerError, err.Error(), "").FPrint(w)
 			return
@@ -83,7 +88,7 @@ func HTTPSetup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	}
 
 	if reqData["step"] == "password" && reqData["action"] == "set" {
-		err := app.SetupSetAdminPassword(ctx, cast.ToString(reqData["account"]), cast.ToString(reqData["password"]))
+		err := h.setup.SetAdminPassword(ctx, cast.ToString(reqData["account"]), cast.ToString(reqData["password"]))
 		if err != nil {
 			response.NewErrorResponse(response.ServerError, err.Error(), "").FPrint(w)
 			return
@@ -93,7 +98,7 @@ func HTTPSetup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	}
 
 	if reqData["step"] == "domain" && reqData["action"] == "get" {
-		smtpDomain, webDomain, domains, err := app.SetupGetDomainSettings()
+		smtpDomain, webDomain, domains, err := h.setup.DomainSettings()
 		if err != nil {
 			response.NewErrorResponse(response.ServerError, err.Error(), "").FPrint(w)
 			return
@@ -107,7 +112,7 @@ func HTTPSetup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	}
 
 	if reqData["step"] == "domain" && reqData["action"] == "set" {
-		err := app.SetupSetDomainSettings(cast.ToString(reqData["smtp_domain"]), cast.ToString(reqData["web_domain"]), reqData["multi_domain"])
+		err := h.setup.SetDomainSettings(cast.ToString(reqData["smtp_domain"]), cast.ToString(reqData["web_domain"]), reqData["multi_domain"])
 		if err != nil {
 			response.NewErrorResponse(response.ServerError, err.Error(), "").FPrint(w)
 			return
@@ -117,7 +122,7 @@ func HTTPSetup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	}
 
 	if reqData["step"] == "dns" && reqData["action"] == "get" {
-		dnsInfos, err := app.SetupGetDNSSettings(ctx)
+		dnsInfos, err := h.setup.DNSSettings(ctx)
 		if err != nil {
 			response.NewErrorResponse(response.ServerError, err.Error(), "").FPrint(w)
 			return
@@ -178,7 +183,7 @@ func HTTPSetup(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 		response.NewSuccessResponse("Succ").FPrint(w)
 
 		if reqData["ssl_type"] == config.SSLTypeUser {
-			app.SetupFinish()
+			h.setup.Finish()
 		}
 		return
 	}

@@ -3,7 +3,6 @@ package api
 import (
 	"strings"
 
-	"github.com/Jinnrry/pmail/internal/app"
 	"github.com/emersion/go-imap/v2"
 	"github.com/spf13/cast"
 )
@@ -18,7 +17,7 @@ func (s *imapServerSession) Select(mailbox string, options *imap.SelectOptions) 
 
 	paths := strings.Split(mailbox, "/")
 	s.currentMailbox = strings.Trim(paths[len(paths)-1], `"`)
-	_, data := app.GetGroupStatus(s.ctx, s.currentMailbox, []string{"MESSAGES", "UNSEEN", "UIDNEXT", "UIDVALIDITY"})
+	_, data := s.server.groups.Status(s.ctx, s.currentMailbox, []string{"MESSAGES", "UNSEEN", "UIDNEXT", "UIDVALIDITY"})
 
 	ret := &imap.SelectData{
 		Flags:          []imap.Flag{imap.FlagSeen},

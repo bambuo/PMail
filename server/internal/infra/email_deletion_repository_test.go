@@ -21,10 +21,9 @@ func newDeletionTestStore(t *testing.T) *xorm.Engine {
 	if err = engine.Sync2(&models.Email{}, &models.UserEmail{}); err != nil {
 		t.Fatal(err)
 	}
-	previousDB, previousSession := Database, app.OpenEmailDeletionSession
+	previousDB := Database
 	Database = engine
-	app.OpenEmailDeletionSession = NewEmailDeletionSession
-	t.Cleanup(func() { Database = previousDB; app.OpenEmailDeletionSession = previousSession; engine.Close() })
+	t.Cleanup(func() { Database = previousDB; engine.Close() })
 	return engine
 }
 
@@ -48,7 +47,7 @@ func TestEmailDeletionRollsBackOnLaterFailure(t *testing.T) {
 	if _, err := engine.Exec("CREATE TRIGGER reject_second_owner_delete BEFORE DELETE ON user_email WHEN OLD.email_id=" + strconv.Itoa(second) + " BEGIN SELECT RAISE(ABORT, 'injected deletion failure'); END"); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.EmailDeleteDelEmail(&context.Context{UserID: 1}, []int{first, second}, true); err == nil {
+	if err := deletionService().Delete(&context.Context{UserID: 1}, []int{first, second}, true); err == nil {
 		t.Fatal("expected the later deletion failure")
 	}
 	for _, id := range []int{first, second} {
@@ -66,7 +65,7 @@ func TestEmailDeletionRollsBackOnLaterFailure(t *testing.T) {
 func TestEmailDeletionPreservesSharedContent(t *testing.T) {
 	engine := newDeletionTestStore(t)
 	id := addDeletionTestMail(t, engine, 1, 2)
-	if err := app.EmailDeleteDelEmail(&context.Context{UserID: 1}, []int{id}, true); err != nil {
+	if err := deletionService().Delete(&context.Context{UserID: 1}, []int{id}, true); err != nil {
 		t.Fatal(err)
 	}
 	var email models.Email
@@ -81,7 +80,7 @@ func TestEmailDeletionPreservesSharedContent(t *testing.T) {
 	if len(owners) != 1 || owners[0].UserID != 2 {
 		t.Fatalf("remaining owners=%+v, want only user 2", owners)
 	}
-	if err = app.EmailDeleteDelEmail(&context.Context{UserID: 2}, []int{id}, true); err != nil {
+	if err = deletionService().Delete(&context.Context{UserID: 2}, []int{id}, true); err != nil {
 		t.Fatal(err)
 	}
 	count, err := engine.Table(&models.Email{}).Where("id=?", id).Count()
@@ -96,7 +95,7 @@ func TestEmailSoftDeleteRetainsContent(t *testing.T) {
 	if _, err := engine.Table(&models.UserEmail{}).Where("email_id=? and user_id=1", id).Update(map[string]any{"group_id": 42}); err != nil {
 		t.Fatal(err)
 	}
-	if err := app.EmailDeleteDelEmail(&context.Context{UserID: 1}, []int{id}, false); err != nil {
+	if err := deletionService().Delete(&context.Context{UserID: 1}, []int{id}, false); err != nil {
 		t.Fatal(err)
 	}
 	var relation models.UserEmail
@@ -113,4 +112,8 @@ func TestEmailSoftDeleteRetainsContent(t *testing.T) {
 	if err != nil || !found || other.Status != 0 {
 		t.Fatalf("other owner's state changed: %+v err=%v", other, err)
 	}
+}
+
+func deletionService() *app.EmailService {
+	return app.NewEmailService(app.EmailServiceDeps{OpenDeletionSession: NewEmailDeletionSession})
 }

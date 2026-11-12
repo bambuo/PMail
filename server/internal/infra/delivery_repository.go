@@ -11,7 +11,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func PersistDeliveryResult(ctx *context.Context, emailID int, status int8, errorText any) error {
+func (r PersistenceRepository) PersistDeliveryResult(ctx *context.Context, emailID int, status int8, errorText any) error {
 	return WithDatabaseTransaction(Database, func(session *xorm.Session) error {
 		result, err := session.Exec(DatabaseWithContext(ctx, `update email
 			set status=?, error=?, update_time=CURRENT_TIMESTAMP
@@ -43,7 +43,7 @@ func smtpRequireOneAffected(result sql.Result, operation string) error {
 	return nil
 }
 
-func PersistInitialAudit(ctx *context.Context, modelEmail models.Email, userIDs []int) (*models.Email, error) {
+func (r PersistenceRepository) PersistInitialAudit(ctx *context.Context, modelEmail models.Email, userIDs []int) (*models.Email, error) {
 	var saved models.Email
 	err := WithDatabaseTransaction(Database, func(session *xorm.Session) error {
 		candidate := modelEmail
@@ -69,7 +69,7 @@ func PersistInitialAudit(ctx *context.Context, modelEmail models.Email, userIDs 
 	return &saved, nil
 }
 
-func FindRecipientAccounts(accounts []string, users *[]*models.User) error {
+func (r PersistenceRepository) FindRecipientAccounts(accounts []string, users *[]*models.User) error {
 	where, params, err := builder.ToSQL(builder.In("LOWER(account)", accounts))
 	if err != nil {
 		return err

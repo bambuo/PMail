@@ -14,8 +14,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// GroupHandler 邮件分组接口，委托分组用例层
-type GroupHandler struct{}
+// GroupHandler 邮件分组接口，委托分组用例服务
+type GroupHandler struct {
+	groups *app.GroupService
+}
 
 func (h *GroupHandler) GetUserGroupList(ctx *context.Context, w http.ResponseWriter, req *http.Request) {
 	defaultGroup := []*models.Group{
@@ -24,7 +26,7 @@ func (h *GroupHandler) GetUserGroupList(ctx *context.Context, w http.ResponseWri
 		{ID: models.Deleted, Name: app.TextGetText(ctx.Lang, "deleted"), FullPath: "/"}, //已删除
 	}
 
-	infos := app.GroupGetGroupList(ctx)
+	infos := h.groups.List(ctx)
 
 	response.NewSuccessResponse(append(defaultGroup, infos...)).FPrint(w)
 }
@@ -54,7 +56,7 @@ func (h *GroupHandler) GetUserGroup(ctx *context.Context, w http.ResponseWriter,
 		},
 	}
 
-	retData = array.Merge(retData, app.GroupGetGroupInfoList(ctx))
+	retData = array.Merge(retData, h.groups.InfoList(ctx))
 
 	response.NewSuccessResponse(retData).FPrint(w)
 }
@@ -75,7 +77,7 @@ func (h *GroupHandler) AddGroup(ctx *context.Context, w http.ResponseWriter, req
 		log.WithContext(ctx).Errorf("%+v", err)
 	}
 
-	newGroup, err := app.CreateGroup(ctx, reqData.Name, reqData.ParentId)
+	newGroup, err := h.groups.Create(ctx, reqData.Name, reqData.ParentId)
 
 	if err != nil {
 		response.NewErrorResponse(response.ServerError, "DBError", err.Error()).FPrint(w)
@@ -99,7 +101,7 @@ func (h *GroupHandler) DelGroup(ctx *context.Context, w http.ResponseWriter, req
 	if err != nil {
 		log.WithContext(ctx).Errorf("%+v", err)
 	}
-	succ, err := app.GroupDelGroup(ctx, reqData.Id)
+	succ, err := h.groups.Delete(ctx, reqData.Id)
 
 	if err != nil {
 		response.NewErrorResponse(response.ServerError, "DBError", err.Error()).FPrint(w)

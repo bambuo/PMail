@@ -19,7 +19,7 @@ type SetupDNSItem struct {
 	Tips  string `json:"tips"`
 }
 
-func SetupGetDNSSettings(ctx *context.Context) (map[string][]*SetupDNSItem, error) {
+func (s *SetupService) DNSSettings(ctx *context.Context) (map[string][]*SetupDNSItem, error) {
 	configData, err := config.ReadConfig()
 	if err != nil {
 		return nil, errors.Wrap(err)
@@ -36,7 +36,7 @@ func SetupGetDNSSettings(ctx *context.Context) (map[string][]*SetupDNSItem, erro
 			{Type: "A", Host: "@", Value: ip.GetIp(), TTL: 3600, Tips: TextGetText(ctx.Lang, "ip_taps")},
 			{Type: "MX", Host: "@", Value: fmt.Sprintf("smtp.%s", domain), TTL: 3600},
 			{Type: "TXT", Host: "@", Value: "v=spf1 a mx ~all", TTL: 3600},
-			{Type: "TXT", Host: "default._domainkey", Value: AuthDkimGen(), TTL: 3600},
+			{Type: "TXT", Host: "default._domainkey", Value: s.dkim(), TTL: 3600},
 		}
 	}
 

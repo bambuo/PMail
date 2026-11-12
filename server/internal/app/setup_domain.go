@@ -8,7 +8,7 @@ import (
 	"github.com/Jinnrry/pmail/pkg/errors"
 )
 
-func SetupGetDomainSettings() (string, string, []string, error) {
+func (s *SetupService) DomainSettings() (string, string, []string, error) {
 	configData, err := config.ReadConfig()
 	if err != nil {
 		return "", "", []string{}, errors.Wrap(err)
@@ -17,7 +17,7 @@ func SetupGetDomainSettings() (string, string, []string, error) {
 	return configData.Domain, configData.WebDomain, array.Difference(configData.Domains, []string{configData.Domain}), nil
 }
 
-func SetupSetDomainSettings(smtpDomain, webDomain, multiDomains string) error {
+func (s *SetupService) SetDomainSettings(smtpDomain, webDomain, multiDomains string) error {
 	configData, err := config.ReadConfig()
 	if err != nil {
 		return errors.Wrap(err)

@@ -7,13 +7,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// HasAuth 检查当前用户是否有某个邮件的auth
-func AuthHasAuth(ctx *context.Context, email *models.Email) bool {
+// HasAccess 检查当前用户是否有某封邮件的访问权
+func (s *EmailQueryService) HasAccess(ctx *context.Context, email *models.Email) bool {
 	if ctx.IsAdmin {
 		return true
 	}
 	var ue []models.UserEmail
-	err := Persistence.FindEmailOwnership(email.Id, ctx.UserID, &ue)
+	err := s.emails.FindEmailOwnership(email.Id, ctx.UserID, &ue)
 	if err != nil {
 		log.Errorf("Error while checking user: %v", err)
 		return false
@@ -21,5 +21,3 @@ func AuthHasAuth(ctx *context.Context, email *models.Email) bool {
 
 	return domain.CanAccessEmail(ctx.IsAdmin, len(ue))
 }
-
-func AuthDkimGen() string { return GenerateDKIM() }

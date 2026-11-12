@@ -8,7 +8,7 @@ import (
 	"github.com/Jinnrry/pmail/pkg/errors"
 )
 
-func RemoveGroups(ctx *context.Context, allGroupIds []int) (bool, error) {
+func (r PersistenceRepository) RemoveGroups(ctx *context.Context, allGroupIds []int) (bool, error) {
 	// 开启一个事务
 	trans := Database.NewSession()
 

@@ -21,7 +21,7 @@ func (s *imapServerSession) Store(w *imapserver.FetchWriter, numSet imap.NumSet,
 	case imap.SeqSet:
 		seqSet := numSet.(imap.SeqSet)
 		for _, seq := range seqSet {
-			res := app.EmailListGetEmailListByGroup(s.ctx, s.currentMailbox, app.EmailListImapListReq{
+			res := s.server.queries.ListByGroup(s.ctx, s.currentMailbox, app.EmailListImapListReq{
 				Star: cast.ToInt(seq.Start),
 				End:  cast.ToInt(seq.Stop),
 			}, false)
@@ -31,7 +31,7 @@ func (s *imapServerSession) Store(w *imapserver.FetchWriter, numSet imap.NumSet,
 	case imap.UIDSet:
 		uidSet := numSet.(imap.UIDSet)
 		for _, uid := range uidSet {
-			res := app.EmailListGetEmailListByGroup(s.ctx, s.currentMailbox, app.EmailListImapListReq{
+			res := s.server.queries.ListByGroup(s.ctx, s.currentMailbox, app.EmailListImapListReq{
 				Star: cast.ToInt(uint32(uid.Start)),
 				End:  cast.ToInt(uint32(uid.Stop)),
 			}, true)
@@ -41,7 +41,7 @@ func (s *imapServerSession) Store(w *imapserver.FetchWriter, numSet imap.NumSet,
 
 	if array.InArray(imap.FlagSeen, flags.Flags) && flags.Op == imap.StoreFlagsAdd {
 		for _, data := range emailList {
-			app.EmailDetailMakeRead(s.ctx, data.Id, flags.Op == imap.StoreFlagsAdd)
+			s.server.emails.MarkRead(s.ctx, data.Id, flags.Op == imap.StoreFlagsAdd)
 		}
 	}
 
@@ -51,7 +51,7 @@ func (s *imapServerSession) Store(w *imapserver.FetchWriter, numSet imap.NumSet,
 		}
 	}
 
-	err := app.EmailDeleteDelByUID(s.ctx, s.deleteUidList)
+	err := s.server.emails.DeleteByUID(s.ctx, s.deleteUidList)
 	s.deleteUidList = []int{}
 
 	if err != nil {

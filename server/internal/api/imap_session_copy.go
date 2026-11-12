@@ -1,11 +1,8 @@
 package api
 
 import (
-	"github.com/Jinnrry/pmail/consts"
 	"github.com/Jinnrry/pmail/dto/response"
 	"github.com/Jinnrry/pmail/internal/app"
-	"github.com/Jinnrry/pmail/models"
-	"github.com/Jinnrry/pmail/pkg/context"
 	"github.com/emersion/go-imap/v2"
 	"github.com/spf13/cast"
 )
@@ -18,7 +15,7 @@ func (s *imapServerSession) Copy(numSet imap.NumSet, dest string) (*imap.CopyDat
 	case imap.SeqSet:
 		seqSet := numSet.(imap.SeqSet)
 		for _, seq := range seqSet {
-			emailList = app.EmailListGetEmailListByGroup(s.ctx, s.currentMailbox, app.EmailListImapListReq{
+			emailList = s.server.queries.ListByGroup(s.ctx, s.currentMailbox, app.EmailListImapListReq{
 				Star: cast.ToInt(seq.Start),
 				End:  cast.ToInt(seq.Stop),
 			}, false)
@@ -26,7 +23,7 @@ func (s *imapServerSession) Copy(numSet imap.NumSet, dest string) (*imap.CopyDat
 	case imap.UIDSet:
 		uidSet := numSet.(imap.UIDSet)
 		for _, uid := range uidSet {
-			emailList = app.EmailListGetEmailListByGroup(s.ctx, s.currentMailbox, app.EmailListImapListReq{
+			emailList = s.server.queries.ListByGroup(s.ctx, s.currentMailbox, app.EmailListImapListReq{
 				Star: cast.ToInt(uint32(uid.Start)),
 				End:  cast.ToInt(uint32(uid.Stop)),
 			}, true)
@@ -43,10 +40,10 @@ func (s *imapServerSession) Copy(numSet imap.NumSet, dest string) (*imap.CopyDat
 	var err error
 	destUid := []int{}
 	UIDValidity := 0
-	if app.GroupIsDefaultBox(dest) {
-		UIDValidity, destUid, err = imapCopy2defaultbox(s.ctx, emailList, dest)
+	if app.IsDefaultBox(dest) {
+		UIDValidity, destUid, err = s.copyToDefaultBox(emailList, dest)
 	} else {
-		UIDValidity, destUid, err = imapCopy2userbox(s.ctx, emailList, dest)
+		UIDValidity, destUid, err = s.copyToUserBox(emailList, dest)
 	}
 	data := imap.CopyData{}
 	data.UIDValidity = cast.ToUint32(UIDValidity)
@@ -63,39 +60,12 @@ func (s *imapServerSession) Copy(numSet imap.NumSet, dest string) (*imap.CopyDat
 	return &data, err
 }
 
-func imapCopy2defaultbox(ctx *context.Context, mails []*response.EmailResponseData, dest string) (int, []int, error) {
-
-	var destUid []int
-	for _, email := range mails {
-
-		newUe := models.UserEmail{
-			UserID:  ctx.UserID,
-			EmailID: email.Id,
-			IsRead:  email.IsRead,
-			GroupId: 0,
-		}
-		switch dest {
-		case "Deleted Messages":
-			newUe.Status = consts.EmailStatusDel
-		case "INBOX":
-			newUe.Status = consts.EmailStatusWait
-		case "Sent Messages":
-			newUe.Status = consts.EmailStatusSent
-		case "Drafts":
-			newUe.Status = consts.EmailStatusDrafts
-		case "Junk":
-			newUe.Status = consts.EmailStatusJunk
-		}
-		app.Persistence.InsertFailedEmailOwner(&newUe)
-
-		destUid = append(destUid, newUe.ID)
-	}
-
-	return models.GroupNameToCode[dest], destUid, nil
+func (s *imapServerSession) copyToDefaultBox(mails []*response.EmailResponseData, dest string) (int, []int, error) {
+	return s.server.emails.CopyToDefaultBox(s.ctx, mails, dest)
 }
 
-func imapCopy2userbox(ctx *context.Context, mails []*response.EmailResponseData, dest string) (int, []int, error) {
-	groupInfo, err := app.GroupGetGroupByFullPath(ctx, dest)
+func (s *imapServerSession) copyToUserBox(mails []*response.EmailResponseData, dest string) (int, []int, error) {
+	groupInfo, err := s.server.groups.GetByFullPath(s.ctx, dest)
 	if err != nil {
 		return 0, nil, &imap.Error{
 			Type: imap.StatusResponseTypeNo,
@@ -108,19 +78,5 @@ func imapCopy2userbox(ctx *context.Context, mails []*response.EmailResponseData,
 			Text: "Group not found",
 		}
 	}
-	var destUid []int
-	for _, email := range mails {
-		newUe := models.UserEmail{
-			UserID:  ctx.UserID,
-			EmailID: email.Id,
-			IsRead:  email.IsRead,
-			GroupId: groupInfo.ID,
-			Status:  email.Status,
-		}
-		app.Persistence.InsertFailedEmailOwner(&newUe)
-
-		destUid = append(destUid, newUe.ID)
-	}
-
-	return groupInfo.ID, destUid, nil
+	return s.server.emails.CopyToGroup(s.ctx, mails, groupInfo.ID)
 }
