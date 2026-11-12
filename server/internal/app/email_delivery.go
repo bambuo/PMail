@@ -5,10 +5,10 @@ import (
 	stderrors "errors"
 	"strings"
 
-	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/consts"
 	"github.com/Jinnrry/pmail/dto/parsemail"
 	"github.com/Jinnrry/pmail/hooks/contract"
+	"github.com/Jinnrry/pmail/internal/config"
 	"github.com/Jinnrry/pmail/internal/domain"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/array"

@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/hooks/spam_block/tools"
-	"github.com/Jinnrry/pmail/internal/infra"
+	"github.com/Jinnrry/pmail/internal/config"
+	"github.com/Jinnrry/pmail/internal/infra/persistence"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/spf13/cast"
+	"xorm.io/xorm"
 )
 
-func getType(emailId int) int {
+func getType(engine *xorm.Engine, emailId int) int {
 	var ue models.UserEmail
-	_, err := infra.Database.Table(&ue).Where("email_id = ?", emailId).Limit(1).Get(&ue)
+	_, err := engine.Table(&ue).Where("email_id = ?", emailId).Limit(1).Get(&ue)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -37,7 +38,7 @@ func main() {
 	}
 
 	config.Init()
-	err := infra.InitDatabase("test")
+	engine, err := persistence.InitDatabase("test")
 	if err != nil {
 		panic(err)
 	}
@@ -54,10 +55,10 @@ func main() {
 	for {
 		var emails []models.Email
 		if id > 0 {
-			infra.Database.
+			engine.
 				Table(&models.Email{}).Where("id = ?", id).OrderBy("id").Find(&emails)
 		} else {
-			infra.Database.
+			engine.
 				Table(&models.Email{}).Where("id > ?", start).OrderBy("id").Find(&emails)
 		}
 		if len(emails) == 0 {
@@ -69,7 +70,7 @@ func main() {
 			if content == "" {
 				content = tools.Trim(email.Text.String)
 			}
-			_, err = file.WriteString(fmt.Sprintf("%d \t%s %s\n", getType(email.Id), email.Subject, content))
+			_, err = file.WriteString(fmt.Sprintf("%d \t%s %s\n", getType(engine, email.Id), email.Subject, content))
 			if err != nil {
 				fmt.Println(err)
 			}

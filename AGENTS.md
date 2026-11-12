@@ -12,27 +12,30 @@
 
 1. `README.md` / `README_CN.md`：定位、部署、配置字段
 2. `docs/README.md`：文档索引与目录约定
-3. `docs/功能/02-功能清单.md`：接口、协议命令、任务、插件的完整清单与统计口径
-4. `docs/功能/08-领域术语表.md`：主术语与代码/数据映射
-5. `docs/架构全景图.md`：系统边界、部署拓扑、运行时链路
-6. 目标改动附近的代码与对应流程文档（`docs/流程/`）
+3. `docs/20-功能/02-功能与接口清单.md`：接口、协议命令、任务、插件的完整清单与统计口径
+4. `docs/20-功能/06-领域术语表.md`：主术语与代码/数据映射
+5. `docs/10-架构/01-架构全景图.md`：系统边界、部署拓扑、运行时链路
+6. 目标改动附近的代码与对应流程文档（`docs/30-流程/`）
 
 ## 仓库地图
 
 | 位置 | 职责 |
 | --- | --- |
 | `server/cmd/pmail/` | 主入口、端到端测试 |
-| `server/internal/api/` | HTTP 路由、中间件、handler 与 SMTP/IMAP/POP3 协议接入；内嵌 `dist/` |
+| `server/internal/api/` | 协议入口子包：`http/`（Handler、中间件、路由、SPA、`dist/`）、`imap/`、`smtp/`、`pop3/` |
 | `server/internal/app/` | 用例编排、事务边界、消费方端口 |
 | `server/internal/domain/` | 纯业务规则、规则匹配、邮件归属与仓储接口 |
-| `server/internal/infra/` | 数据库、会话、证书、邮件认证与插件适配 |
+| `server/internal/infra/` | 适配器子包：`persistence/`、`certificate/`、`plugin/`、`mfa/`、`session/`、`mail/` |
 | `server/internal/bootstrap/` | 依赖装配、启动、定时任务、重启和关闭 |
 | `server/hooks/` | WASM 插件契约、ABI 与内置插件 |
-| `server/config/` | 配置包、运行配置、示例证书与私钥 |
+| `server/internal/config/` | 配置结构体与加载逻辑 |
+| `deploy/config/` | 样例配置、示例证书与私钥（运行期由 `server/config/` 生成，不入库） |
+| `server/internal/testutil/` | 测试依赖装配（仅测试引用） |
 | `server/dto/`、`server/models/`、`server/pkg/` | 兼容插件的公开数据与工具包 |
 | `web/desktop/src/` | Vue3 前端 |
-| `docs/` | 架构、需求、流程、功能文档 |
-| `scripts/check-architecture.mjs` | 五层包布局与依赖检查 |
+| `docs/` | `10-架构`、`20-功能`、`30-流程`、`40-需求`、`90-归档` |
+| `scripts/check-architecture.mjs` | 五层前缀与子包依赖检查 |
+| `scripts/check-docs.mjs`、`scripts/check-requirement-docs.mjs` | 文档与需求五件套校验 |
 
 ## 常用命令
 
@@ -40,8 +43,11 @@
 # 只在后端编译（最快）
 cd server && go build ./...
 
-# 大范围改动后跑测试：注意真实测试会监听特权端口
-sudo env "PATH=$PATH" make test
+# 默认单元/包内测试（不启动真实端口）
+make test
+
+# 真实服务集成测试（e2e 构建标签，需端口 25/465/587 等空闲）
+make test_e2e
 
 # 单个包测试
 cd server && go test -v -run ^Test ./internal/app
@@ -60,23 +66,23 @@ cd web/desktop && yarn && yarn dev     # vite 开发服务器
 cd web/desktop && yarn lint
 ```
 
-- `make test` 会真实启动 SMTP/IMAP/POP3 等监听（含 <1024 端口），非 root 环境会失败；`docs/功能/10-调试手册.md` 记录了该前置条件。
-- 前端产物需要 `cd web/desktop && yarn build` 后再拷贝到 `server/internal/api/dist`（`make build_fe` 已完成此步）。
+- `make test` 只跑默认可隔离测试；真实服务测试在 `e2e` 构建标签下，用 `make test_e2e` 运行，前置条件是相关端口空闲。两个目标都会先把 `deploy/config/` 的样例复制到 `server/config/`，运行期生成的数据仍不入库。
+- 前端产物需要 `cd web/desktop && bun run build` 后再拷贝到 `server/internal/api/http/dist`（`make build_fe` 已完成此步）。
 
 ## 架构与编码规则
 
-- 分层采用顶层 DDD 四层、每层一个 Go 包：`api → app → domain ← infra`；`bootstrap` 绑定实现。api 负责请求与响应，app 编排用例及事务，domain 保持纯业务规则，infra 实现存储与外部适配。api/app/domain 不得导入 infra，domain 不依赖 ORM、协议或插件数据类型。数据库访问放 infra，必须参数绑定。
-- 新增 HTTP 路由必须同时：注册到 `server/internal/api/http_routes.go` 的 `httpServerRouter()`、在 `contextIterceptor` 之后确认登录要求、使用统一 `errorNo`（`server/dto/response/response.go`）、同步更新 `docs/功能/02-功能清单.md` 与 `03-接口说明.md` 的统计数字。
+- 分层采用顶层 DDD 四层，允许层内子包：`api → app → domain ← infra`；`bootstrap` 绑定实现。api 负责请求与响应，app 编排用例及事务，domain 保持纯业务规则，infra 实现存储与外部适配。api/app/domain 不得导入 infra，domain 不依赖 ORM、协议或插件数据类型。数据库访问放 infra，必须参数绑定。`scripts/check-architecture.mjs` 按五层前缀校验子包依赖边。
+- 新增 HTTP 路由必须同时：注册到 `server/internal/api/http/http_routes.go` 的 `httpServerRouter()`、在 `contextIterceptor` 之后确认登录要求、使用统一 `errorNo`（`server/dto/response/response.go`）、同步更新 `docs/20-功能/02-功能与接口清单.md` 的统计数字。
 - 该服务使用 `http.ServeMux`，**不区分 HTTP method**；新增接口不要假设只有 POST 会到达。
 - 邮件状态与类型必须使用 `server/consts/consts.go` 与 `server/models/group.go` 中的常量，禁止再新增裸数字；`user_email.status` 与 `email.status` 语义不同（见术语表）。
 - 收信链路任何会改 `email.Status` 的逻辑都要考虑插件 `ReceiveParseAfter` 的覆盖顺序与 `spoofed` 强制置 3 的既有优先级。
 - 日志用 `log.WithContext(ctx)` 携带 LogID；禁止打印密码、Token、DKIM 私钥、证书内容。
-- 新增配置字段要同步：`server/config/config.go` 的 `Config` 结构体、`server/config/config*.json` 样例、`docs/功能/07-构建与部署.md` 的字段表。
-- 插件相关改动必须兼容 `server/hooks/contract/hook.go` 的 `EmailHook` 契约与 `server/hooks/wasmabi` 的 ABI；插件启停/重载期间 `HookList` 的并发安全不能被破坏。
+- 新增配置字段要同步：`server/internal/config/config.go` 的 `Config` 结构体、`deploy/config/config*.json` 样例、`docs/20-功能/05-构建与部署.md` 的字段表。
+- 插件相关改动必须兼容 `server/hooks/contract/hook.go` 的 `EmailHook` 契约（`EmailOwner` 不得回退为 ORM `models`）与 `server/hooks/wasmabi` 的 ABI；插件启停/重载期间 `HookList` 的并发安全不能被破坏。
 
 ## 测试规则
 
-- 测试为包内 `*_test.go`（当前 35 个测试文件、156 个 `Test*` 函数）。
+- 测试为包内 `*_test.go`（当前 41 个测试文件、169 个 `Test*` 函数）；真实服务测试使用 `//go:build e2e`。
 - 修 bug 补回归测试；涉及收信分支（SPF/DKIM/未知收件人/审计回写）的改动必须有测试覆盖证据。
 - 不得为“变绿”删除断言、跳过用例或改写期望值。
 - 交付时给出实际命令与结果；未执行项（例如需要特权端口的用例）明确列出。
@@ -86,7 +92,7 @@ cd web/desktop && yarn lint
 - 启动时 `Sync2` 会按模型自动建表/加列；**删列、改类型、数据回填不会自动完成**，需要显式迁移。结构/数据变更只交付 SQL，不直接对共享数据库执行。
 - 破坏性操作先确认；禁止 DROP/TRUNCATE/无条件 UPDATE 排障。
 - 不削弱现有鉴权（`contextIterceptor`、`auth.HasAuth`、Token 5 秒时效）、不绕过邮件 HTML 清洗（`parsemail` 的 bluemonday 策略）。
-- 仓库 `server/config/ssl/`、`server/config/dkim/` 内含示例证书与私钥，只能用于本地调试；发现被用于生产要立即轮换并报告。
+- 仓库 `deploy/config/ssl/`、`deploy/config/dkim/` 内含示例证书与私钥，只能用于本地调试；发现被用于生产要立即轮换并报告。
 - 新增文档/示例不得写入真实域名凭据、Token、密码。
 
 ## Git 与交付

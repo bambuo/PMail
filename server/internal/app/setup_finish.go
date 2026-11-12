@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/Jinnrry/pmail/config"
+	"github.com/Jinnrry/pmail/internal/config"
 	"github.com/Jinnrry/pmail/pkg/errors"
 )
 

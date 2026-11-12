@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/internal/bootstrap"
+	"github.com/Jinnrry/pmail/internal/config"
 	log "github.com/sirupsen/logrus"
 )
 

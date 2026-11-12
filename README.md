@@ -16,7 +16,7 @@ own .
 All kinds of PR are welcome, whether you are fixing bugs, adding features, or optimizing translations. Also, call for a
 beautiful and cute Logo for this project!
 
-<img src="./docs/功能/媒体/en.gif" alt="Editor" width="800px">
+<img src="./docs/20-功能/媒体/en.gif" alt="Editor" width="800px">
 
 ## Features
 
@@ -133,12 +133,12 @@ The full document set lives in [`docs/`](./docs/README.md):
 
 | Document | Content |
 | --- | --- |
-| [docs/架构全景图.md](./docs/架构全景图.md) | System context, deployment topology, runtime flows |
-| [docs/功能/01-项目架构.md](./docs/功能/01-项目架构.md) | Components, startup order, services and ports |
-| [docs/功能/02-功能清单.md](./docs/功能/02-功能清单.md) | Every HTTP route, protocol capability, task and plugin |
-| [docs/功能/03-接口说明.md](./docs/功能/03-接口说明.md) | Management API contracts |
-| [docs/功能/07-构建与部署.md](./docs/功能/07-构建与部署.md) | Build pipeline, ports, configuration fields |
-| [docs/流程/](./docs/流程/) | Per-feature flow charts, sequence diagrams and state machines |
+| [docs/10-架构/01-架构全景图.md](./docs/10-架构/01-架构全景图.md) | System context, deployment topology, runtime flows |
+| [docs/20-功能/01-项目架构.md](./docs/20-功能/01-项目架构.md) | Components, startup order, services and ports |
+| [docs/20-功能/02-功能与接口清单.md](./docs/20-功能/02-功能与接口清单.md) | Every HTTP route, protocol capability, task and plugin |
+| [docs/20-功能/02-功能与接口清单.md](./docs/20-功能/02-功能与接口清单.md) | Management API contracts |
+| [docs/20-功能/05-构建与部署.md](./docs/20-功能/05-构建与部署.md) | Build pipeline, ports, configuration fields |
+| [docs/30-流程/](./docs/30-流程/) | Per-feature flow charts, sequence diagrams and state machines |
 | [AGENTS.md](./AGENTS.md) | Rules for AI coding agents working in this repo |
 
 ## Project Framework

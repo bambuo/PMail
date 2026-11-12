@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Jinnrry/pmail/config"
+	"github.com/Jinnrry/pmail/internal/config"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/context"
 	"github.com/emersion/go-message"

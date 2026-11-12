@@ -7,10 +7,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/consts"
 	"github.com/Jinnrry/pmail/dto/parsemail"
 	"github.com/Jinnrry/pmail/hooks/contract"
+	"github.com/Jinnrry/pmail/internal/config"
 	"github.com/Jinnrry/pmail/internal/domain"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/array"
@@ -139,13 +139,20 @@ func (s *MailSubmission) Receive(r io.Reader) error {
 		if err != nil {
 			log.WithContext(ctx).Errorf("sql Error :%+v", err)
 		}
+		owners := make([]*contract.EmailOwner, 0, len(ue))
+		for _, item := range ue {
+			owners = append(owners, &contract.EmailOwner{
+				ID: item.ID, UserID: item.UserID, EmailID: item.EmailID,
+				IsRead: item.IsRead, GroupId: item.GroupId, Status: item.Status, Created: item.Created,
+			})
+		}
 		as3 := async.New(ctx)
 		for _, hook := range s.Service.hooks() {
 			if hook == nil {
 				continue
 			}
 			as3.WaitProcess(func(hk any) {
-				hk.(contract.EmailHook).ReceiveSaveAfter(ctx, email, ue)
+				hk.(contract.EmailHook).ReceiveSaveAfter(ctx, email, owners)
 			}, hook)
 		}
 		as3.Wait()

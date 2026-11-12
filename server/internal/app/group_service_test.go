@@ -6,15 +6,20 @@ import (
 
 	"github.com/Jinnrry/pmail/internal/app"
 
-	"github.com/Jinnrry/pmail/config"
-	"github.com/Jinnrry/pmail/internal/infra"
+	"github.com/Jinnrry/pmail/internal/bootstrap"
+	"github.com/Jinnrry/pmail/internal/config"
+	"github.com/Jinnrry/pmail/internal/infra/persistence"
 	"github.com/Jinnrry/pmail/pkg/context"
 )
 
 func TestGetGroupStatus(t *testing.T) {
 	config.Init()
-	infra.InitDatabase("")
-	infra.Database.
+	engine, err := persistence.InitDatabase("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	bootstrap.BindDatabase(engine)
+	engine.
 		ShowSQL(true)
 	ctx := &context.Context{
 		UserID:      1,

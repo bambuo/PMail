@@ -1,5 +1,5 @@
 // 持久化端口按模块拆分为角色接口（User/Email/Group/MailboxStats/Rule），
-// 每个消费方只依赖自己用到的角色接口；由 infra.PersistenceRepository
+// 每个消费方只依赖自己用到的角色接口；由 persistence.PersistenceRepository
 // 统一实现、bootstrap.BindDependencies 装配到各领域服务。
 package app
 

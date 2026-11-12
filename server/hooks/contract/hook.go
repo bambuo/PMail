@@ -1,10 +1,22 @@
 package contract
 
 import (
+	"time"
+
 	"github.com/Jinnrry/pmail/dto/parsemail"
-	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/context"
 )
+
+// EmailOwner 是插件可见的邮件归属视图，避免暴露 ORM 模型。
+type EmailOwner struct {
+	ID      int
+	UserID  int
+	EmailID int
+	IsRead  int8 `json:"is_read"`
+	GroupId int  `json:"group_id"`
+	Status  int8 `json:"status"`
+	Created time.Time
+}
 
 // EmailHook 是插件与邮件处理链路之间的唯一契约。
 // 当前由 WASM 执行器实现；进程插件机制已移除。
@@ -18,7 +30,7 @@ type EmailHook interface {
 	// ReceiveParseAfter 接收到邮件，解析之后的结构化数据 (收信规则前，写数据库前执行)  同步执行
 	ReceiveParseAfter(ctx *context.Context, email *parsemail.Email)
 	// ReceiveSaveAfter 邮件落库以后执行（收信规则后执行） 异步执行
-	ReceiveSaveAfter(ctx *context.Context, email *parsemail.Email, ue []*models.UserEmail)
+	ReceiveSaveAfter(ctx *context.Context, email *parsemail.Email, ue []*EmailOwner)
 	// GetName 获取插件名称
 	GetName(ctx *context.Context) string
 	// SettingsHtml 插件页面

@@ -1,4 +1,4 @@
-.PHONY: build clean build_fe build_server wasm_plugins package test test_mysql test_postgres run run_dev check_arch
+.PHONY: build clean build_fe build_server wasm_plugins package test test_e2e test_mysql test_postgres run run_dev check_arch
 
 build: build_fe build_server wasm_plugins package
 
@@ -8,8 +8,8 @@ clean:
 
 build_fe:
 	cd web/desktop && bun install --frozen-lockfile && bun run build
-	rm -rf server/internal/api/dist
-	cd server && cp -rf ../web/desktop/dist internal/api
+	rm -rf server/internal/api/http/dist
+	cd server && cp -rf ../web/desktop/dist internal/api/http
 
 build_server:
 	cd server && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w -X 'main.goVersion=$(go version)' -X 'main.gitHash=$(git show -s --format=%H)' -X 'main.buildTime=$(TZ=UTC-8 date +%Y-%m-%d" "%H:%M:%S)'" -o pmail_linux_amd64  ./cmd/pmail
@@ -31,18 +31,25 @@ package: clean
 	mv server/pmail* output/
 	mkdir output/config
 	mkdir output/plugins
-	cp -r server/config/dkim output/config/
-	cp -r server/config/ssl output/config/
-	cp -r server/config/config.json output/config/
+	cp -r deploy/config/dkim output/config/
+	cp -r deploy/config/ssl output/config/
+	cp -r deploy/config/config.json output/config/
 	mkdir -p output/plugins/wasm
 	cp -r server/hooks/wasm_plugins/output/spam_block output/plugins/wasm/
 	cp -r server/hooks/wasm_plugins/output/wechat_push output/plugins/wasm/
 	cp README.md output/
 
-test:
+test_fixtures:
+	mkdir -p server/config
+	cp -R deploy/config/. server/config/
+
+test: test_fixtures
 	export setup_port=17888 && cd server && export PMail_ROOT=$(CURDIR)/server/ && go test -v -p 1 ./...
 
-test_mysql:
+test_e2e: test_fixtures
+	export setup_port=17888 && cd server && export PMail_ROOT=$(CURDIR)/server/ && go test -tags e2e -v -p 1 ./...
+
+test_mysql: test_fixtures
 	export setup_port=17888 && cd server && export PMail_ROOT=$(CURDIR)/server/ && go test -args "mysql" -v -p 1 ./...
 
 test_postgres:

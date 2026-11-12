@@ -6,11 +6,17 @@ import (
 
 	"fmt"
 
-	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/dto/parsemail"
-	"github.com/Jinnrry/pmail/internal/api"
+	httpapi "github.com/Jinnrry/pmail/internal/api/http"
+	imapapi "github.com/Jinnrry/pmail/internal/api/imap"
+	"github.com/Jinnrry/pmail/internal/api/pop3"
+	smtpapi "github.com/Jinnrry/pmail/internal/api/smtp"
 	"github.com/Jinnrry/pmail/internal/app"
-	"github.com/Jinnrry/pmail/internal/infra"
+	"github.com/Jinnrry/pmail/internal/config"
+	"github.com/Jinnrry/pmail/internal/infra/certificate"
+	"github.com/Jinnrry/pmail/internal/infra/persistence"
+	"github.com/Jinnrry/pmail/internal/infra/plugin"
+	"github.com/Jinnrry/pmail/internal/infra/session"
 	"github.com/Jinnrry/pmail/pkg/file"
 	log "github.com/sirupsen/logrus"
 
@@ -25,9 +31,9 @@ func Run(serverVersion string) {
 	if !config.IsInit {
 		lifecycleDirInit()
 
-		go api.StartSetupHTTP()
+		go httpapi.StartSetupHTTP()
 		<-app.LifecycleInitChan
-		api.StopSetupHTTP()
+		httpapi.StopSetupHTTP()
 	}
 
 	for {
@@ -36,53 +42,52 @@ func Run(serverVersion string) {
 		// ssl.Update(false)
 
 		parsemail.Init()
-		err := infra.InitDatabase(serverVersion)
+		engine, err := persistence.InitDatabase(serverVersion)
 		if err != nil {
 			panic(err)
 		}
-		infra.SessionInit()
-		app.Sessions = infra.SessionInstance
-		infra.PluginWasmInit(serverVersion)
+		BindDatabase(engine)
+		session.Init(engine)
+		app.Sessions = session.Instance
+		plugin.WasmInit(serverVersion)
 		// smtp server start
-		go api.StartSMTP()
-		go api.StartSMTPS()
-		go api.StartSubmissionSMTP()
+		go smtpapi.StartSMTP()
+		go smtpapi.StartSMTPS()
+		go smtpapi.StartSubmissionSMTP()
 		// http server start
-		go api.StartHTTPS()
-		go api.StartHTTP()
+		go httpapi.StartHTTPS()
+		go httpapi.StartHTTP()
 
 		// 等待 HTTP 服务就绪后再执行证书检查/续期，避免 ACME 验证失败
 		lifecycleWaitHTTPReady()
-		infra.
-
-			// 启动后检查一遍证书（非重启模式）
-			CertificateUpdate(false)
+		// 启动后检查一遍证书（非重启模式）
+		certificate.Update(false)
 
 		// pop3 server start
-		go api.StartPOP3()
-		go api.StartPOP3S()
+		go pop3.StartPOP3()
+		go pop3.StartPOP3S()
 		// imap server start
-		go api.StartIMAPS()
+		go imapapi.StartIMAPS()
 
 		log.Infof("Configuration loaded: database=%s http_port=%d", config.Instance.DbType, config.Instance.HttpPort)
 
 		select {
 		case <-app.LifecycleRestartChan:
 			log.Infof("Server Restart!")
-			api.StopSMTP()
-			api.StopHTTPS()
-			api.StopHTTP()
-			api.StopPOP3()
-			api.StopIMAP()
-			infra.PluginWasmStop()
+			smtpapi.StopSMTP()
+			httpapi.StopHTTPS()
+			httpapi.StopHTTP()
+			pop3.StopPOP3()
+			imapapi.StopIMAP()
+			plugin.WasmStop()
 		case <-app.LifecycleStopChan:
 			log.Infof("Server Stop!")
-			api.StopSMTP()
-			api.StopHTTPS()
-			api.StopHTTP()
-			api.StopPOP3()
-			api.StopIMAP()
-			infra.PluginWasmStop()
+			smtpapi.StopSMTP()
+			httpapi.StopHTTPS()
+			httpapi.StopHTTP()
+			pop3.StopPOP3()
+			imapapi.StopIMAP()
+			plugin.WasmStop()
 			return
 		}
 		log.Infof("Server Stop Success!")

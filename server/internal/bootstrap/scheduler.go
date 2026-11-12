@@ -3,9 +3,9 @@ package bootstrap
 import (
 	"time"
 
-	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/internal/app"
-	"github.com/Jinnrry/pmail/internal/infra"
+	"github.com/Jinnrry/pmail/internal/config"
+	"github.com/Jinnrry/pmail/internal/infra/certificate"
 	log "github.com/sirupsen/logrus"
 
 	// 新增：HTTP 就绪探测
@@ -38,14 +38,14 @@ func CertificateSchedulerStart() {
 // 每天检查一遍SSL证书是否更新，更新就重启
 func certificateSchedulerSslCheck() {
 	var err error
-	_, certificateSchedulerExpiredTime, _, err = infra.CertificateCheckSSLCrtInfo()
+	_, certificateSchedulerExpiredTime, _, err = certificate.CheckSSLCrtInfo()
 	if err != nil {
 		panic(err)
 	}
 
 	for {
 		time.Sleep(24 * time.Hour)
-		_, newExpTime, _, err := infra.CertificateCheckSSLCrtInfo()
+		_, newExpTime, _, err := certificate.CheckSSLCrtInfo()
 		if err != nil {
 			log.Errorf("SSL Check Error! %+v", err)
 		}
@@ -63,7 +63,7 @@ func certificateSchedulerSslUpdateLoop() {
 	for {
 		// 等待 HTTP 就绪后再执行 ACME 续期，避免挑战失败
 		certificateSchedulerWaitHTTPReady()
-		infra.CertificateUpdate(true)
+		certificate.Update(true)
 		// 每24小时检测一次证书有效期
 		time.Sleep(24 * time.Hour)
 	}

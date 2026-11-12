@@ -6,9 +6,9 @@ import (
 
 	"github.com/Jinnrry/pmail/internal/app"
 
-	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/dto/parsemail"
-	"github.com/Jinnrry/pmail/internal/infra"
+	"github.com/Jinnrry/pmail/internal/bootstrap"
+	"github.com/Jinnrry/pmail/internal/config"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/context"
 	_ "modernc.org/sqlite"
@@ -17,10 +17,8 @@ import (
 
 func TestForwardToLocalUser(t *testing.T) {
 	oldConfig := config.Instance
-	oldDB := infra.Database
 	defer func() {
 		config.Instance = oldConfig
-		infra.Database = oldDB
 	}()
 
 	config.Instance = &config.Config{
@@ -33,7 +31,7 @@ func TestForwardToLocalUser(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer engine.Close()
-	infra.Database = engine
+	bootstrap.BindDatabase(engine)
 
 	if err := engine.Sync2(&models.User{}, &models.UserEmail{}); err != nil {
 		t.Fatal(err)

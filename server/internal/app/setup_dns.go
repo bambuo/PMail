@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Jinnrry/pmail/config"
+	"github.com/Jinnrry/pmail/internal/config"
 
 	"github.com/Jinnrry/pmail/pkg/context"
 	"github.com/Jinnrry/pmail/pkg/errors"

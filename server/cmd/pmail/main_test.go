@@ -1,3 +1,5 @@
+//go:build e2e
+
 package main
 
 import (
@@ -14,14 +16,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Jinnrry/pmail/config"
 	"github.com/Jinnrry/pmail/dto/response"
 	"github.com/Jinnrry/pmail/internal/app"
-	"github.com/Jinnrry/pmail/internal/infra"
+	"github.com/Jinnrry/pmail/internal/config"
 	"github.com/Jinnrry/pmail/models"
 	"github.com/Jinnrry/pmail/pkg/array"
 	"github.com/Jinnrry/pmail/pkg/password"
 	"github.com/spf13/cast"
+	"xorm.io/xorm"
 )
 
 var httpClient *http.Client
@@ -53,6 +55,20 @@ func TestMain(m *testing.M) {
 	m.Run()
 	app.LifecycleStopChan <- true
 	time.Sleep(3 * time.Second)
+}
+
+func testDatabase(t *testing.T) *xorm.Engine {
+	t.Helper()
+	cfg, err := config.ReadConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine, err := xorm.NewEngine(cfg.DbType, cfg.DbDSN)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = engine.Close() })
+	return engine
 }
 
 func TestMaster(t *testing.T) {
@@ -184,7 +200,7 @@ func testTokenLogin(t *testing.T) {
 
 func testCheckRule(t *testing.T) {
 	var ue models.UserEmail
-	infra.Database.
+	testDatabase(t).
 		Where("group_id!=0").Get(&ue)
 	if ue.GroupId == 0 {
 		t.Error("邮件规则执行失败！")
@@ -928,82 +944,37 @@ func testSendEmail2User3(t *testing.T) {
 }
 
 func testEmailList(t *testing.T) {
-	ret, err := httpClient.Post(TestHost+"/api/email/list", "application/json", strings.NewReader(`{}`))
-	if err != nil {
-		t.Error(err)
-	}
-	data, err := readResponse(ret.Body)
-	if err != nil {
-		t.Error(err)
-	}
-	if data.ErrorNo != 0 {
-		t.Error("Get Email List Api Error!")
-	}
-	dt := data.Data.(map[string]interface{})
-	if dt["list"] == nil || len(dt["list"].([]interface{})) == 0 {
-		t.Error("Email List Is Empty!")
-		return
-	}
-
-	lst := dt["list"].([]interface{})
+	lst := waitEmailListCount(t, 1)
 	item := lst[0].(map[string]interface{})
 	id := cast.ToInt(item["id"])
 	if id == 0 {
 		t.Error("Email List Data Error!")
 	}
 
-	t.Logf("testEmailList Success! Response: %+v", data)
+	t.Logf("testEmailList Success! List length: %d, first id: %d", len(lst), id)
 }
 
 func testUser2EmailList(t *testing.T) {
-	ret, err := httpClient.Post(TestHost+"/api/email/list", "application/json", strings.NewReader(`{}`))
-	if err != nil {
-		t.Error(err)
-	}
-	data, err := readResponse(ret.Body)
-	if err != nil {
-		t.Error(err)
-	}
-	if data.ErrorNo != 0 {
-		t.Error("Get Email List Api Error!")
-	}
-	dt := data.Data.(map[string]interface{})
-
-	if dt["list"] == nil || len(dt["list"].([]interface{})) != 2 {
-		t.Error("Email List Is Empty!")
+	lst := waitEmailListCount(t, 2)
+	if len(lst) != 2 {
+		t.Errorf("Email List count = %d, want 2", len(lst))
 	}
 
-	t.Logf("testUser2EmailList Success! Response: %+v", data)
-
+	t.Logf("testUser2EmailList Success! List length: %d", len(lst))
 }
 
 func testDelEmail(t *testing.T) {
-	ret, err := httpClient.Post(TestHost+"/api/email/list", "application/json", strings.NewReader(`{}`))
-	if err != nil {
-		t.Error(err)
-	}
-	data, err := readResponse(ret.Body)
-	if err != nil {
-		t.Error(err)
-	}
-	if data.ErrorNo != 0 {
-		t.Error("Get Email List Api Error!")
-	}
-	dt := data.Data.(map[string]interface{})
-	if len(dt["list"].([]interface{})) == 0 {
-		t.Error("Email List Is Empty!")
-	}
-	lst := dt["list"].([]interface{})
+	lst := waitEmailListCount(t, 1)
 	item := lst[0].(map[string]interface{})
 	id := cast.ToInt(item["id"])
 
-	ret, err = httpClient.Post(TestHost+"/api/email/del", "application/json", strings.NewReader(fmt.Sprintf(`{
+	ret, err := httpClient.Post(TestHost+"/api/email/del", "application/json", strings.NewReader(fmt.Sprintf(`{
 	"ids":[%d]	
 }`, id)))
 	if err != nil {
 		t.Error(err)
 	}
-	data, err = readResponse(ret.Body)
+	data, err := readResponse(ret.Body)
 	if err != nil {
 		t.Error(err)
 	}
@@ -1011,7 +982,7 @@ func testDelEmail(t *testing.T) {
 		t.Error("Email Delete Api Error!")
 	}
 	var mail models.UserEmail
-	infra.Database.
+	testDatabase(t).
 		Where("email_id = ?", id).Get(&mail)
 	if mail.Status != 3 {
 		t.Error("Email Delete Api Error!")
@@ -1021,58 +992,41 @@ func testDelEmail(t *testing.T) {
 }
 
 func testUser2DelEmail(t *testing.T) {
-	ret, err := httpClient.Post(TestHost+"/api/email/list", "application/json", strings.NewReader(`{}`))
-	if err != nil {
-		t.Error(err)
-	}
-	data, err := readResponse(ret.Body)
-	if err != nil {
-		t.Error(err)
-	}
-	if data.ErrorNo != 0 {
-		t.Error("Get Email List Api Error!")
-	}
-	dt := data.Data.(map[string]interface{})
-	if len(dt["list"].([]interface{})) == 0 {
-		t.Error("Email List Is Empty!")
-	}
-	lst := dt["list"].([]interface{})
+	lst := waitEmailTitle(t, "HelloUser1User2")
 
 	for _, item := range lst {
 		// 删除两个用户的邮件
 		title := cast.ToString(item.(map[string]interface{})["title"])
+		if title != "HelloUser1User2" {
+			continue
+		}
 		id := cast.ToInt(item.(map[string]interface{})["id"])
-		if title == "HelloUser1User2" {
-			ret, err = httpClient.Post(TestHost+"/api/email/del", "application/json", strings.NewReader(fmt.Sprintf(`{
+		ret, err := httpClient.Post(TestHost+"/api/email/del", "application/json", strings.NewReader(fmt.Sprintf(`{
 	"ids":[%d]	
 }`, id)))
-			if err != nil {
-				t.Error(err)
-			}
-			data, err = readResponse(ret.Body)
-			if err != nil {
-				t.Error(err)
-			}
-			if data.ErrorNo != 0 {
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := readResponse(ret.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if data.ErrorNo != 0 {
+			t.Fatal("Email Delete Api Error!")
+		}
+		var mails []models.UserEmail
+		testDatabase(t).
+			Where("email_id = ?", id).Find(&mails)
+		for _, mail := range mails {
+			if mail.Status != 3 && mail.UserID == 3 {
 				t.Error("Email Delete Api Error!")
 			}
-			var mails []models.UserEmail
-			infra.Database.
-				Where("email_id = ?", id).Find(&mails)
-			for _, mail := range mails {
-				if mail.Status != 3 && mail.UserID == 3 {
-					t.Error("Email Delete Api Error!")
-				}
-				if mail.UserID != 3 && mail.Status == 3 {
-					t.Error("Email Delete Api Error!")
-				}
+			if mail.UserID != 3 && mail.Status == 3 {
+				t.Error("Email Delete Api Error!")
 			}
-
 		}
-
+		t.Logf("testUser2DelEmail Success! Response: %+v", data)
 	}
-
-	t.Logf("testDelEmail Success! Response: %+v", data)
 }
 
 // portCheck 检查端口是占用
@@ -1083,6 +1037,56 @@ func portCheck(port int) bool {
 	}
 	defer l.Close()
 	return false
+}
+
+func waitEmailListCount(t *testing.T, want int) []interface{} {
+	t.Helper()
+	deadline := time.Now().Add(time.Minute)
+	for {
+		lst := fetchEmailList(t)
+		if len(lst) >= want {
+			return lst
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("email list did not reach %d items, got %d", want, len(lst))
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func waitEmailTitle(t *testing.T, title string) []interface{} {
+	t.Helper()
+	deadline := time.Now().Add(time.Minute)
+	for {
+		lst := fetchEmailList(t)
+		for _, item := range lst {
+			if cast.ToString(item.(map[string]interface{})["title"]) == title {
+				return lst
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("email %q was not delivered in time", title)
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func fetchEmailList(t *testing.T) []interface{} {
+	t.Helper()
+	ret, err := httpClient.Post(TestHost+"/api/email/list", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := readResponse(ret.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data.ErrorNo != 0 {
+		t.Fatalf("Get Email List Api Error: %s", data.ErrorMsg)
+	}
+	dt, _ := data.Data.(map[string]interface{})
+	lst, _ := dt["list"].([]interface{})
+	return lst
 }
 
 func readResponse(r io.Reader) (*response.Response, error) {

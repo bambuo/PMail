@@ -23,7 +23,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"errors"
-	"github.com/Jinnrry/pmail/config"
+	"github.com/Jinnrry/pmail/internal/config"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net"

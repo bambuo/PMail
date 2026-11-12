@@ -6,7 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/Jinnrry/pmail/config"
+	"github.com/Jinnrry/pmail/internal/config"
 	"github.com/Jinnrry/pmail/pkg/consts"
 	"github.com/Jinnrry/pmail/pkg/context"
 	"github.com/emersion/go-msgauth/dkim"
