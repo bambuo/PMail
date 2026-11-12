@@ -1,4 +1,4 @@
-.PHONY: build clean build_fe build_server wasm_plugins package test test_e2e test_mysql test_postgres run run_dev check_arch
+.PHONY: build clean build_fe build_server wasm_plugins package docker_build test test_e2e test_mysql test_postgres run run_dev check_arch
 
 build: build_fe build_server wasm_plugins package
 
@@ -38,6 +38,13 @@ package: clean
 	cp -r server/hooks/wasm_plugins/output/spam_block output/plugins/wasm/
 	cp -r server/hooks/wasm_plugins/output/wechat_push output/plugins/wasm/
 	cp README.md output/
+
+docker_build:
+	docker build \
+		--build-arg VERSION=$$(git describe --tags --always 2>/dev/null || echo dev) \
+		--build-arg GIT_HASH=$$(git rev-parse HEAD 2>/dev/null || echo unknown) \
+		--build-arg BUILD_TIME=$$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+		-t pmail:latest .
 
 test_fixtures:
 	mkdir -p server/config
